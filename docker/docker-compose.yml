@@ -1,0 +1,25 @@
+services:
+  samba:
+    image: dperson/samba:latest
+    container_name: luege-test-smb
+    ports:
+      - "445:445"
+      - "139:139"
+    environment:
+      - TZ=UTC
+    volumes:
+      - ./test-data/TestShare:/share/TestShare:rw
+      - ./test-data/Movies:/share/Movies:rw
+      - ./test-data/Music:/share/Music:rw
+    command: >
+      -p
+      -n
+      -g "server signing = disabled"
+      -g "client signing = disabled"
+      -g "map to guest = Bad User"
+      -g "guest account = nobody"
+      -g "security = user"
+      -u "guest;guest"
+      -s "TestShare;/share/TestShare;yes;no;no;guest;none;;Test share for integration tests"
+      -s "Movies;/share/Movies;yes;no;no;guest;none;;Movies test share"
+      -s "Music;/share/Music;yes;no;no;guest;none;;Music test share"
