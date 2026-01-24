@@ -57,17 +57,26 @@
 
 ---
 
-### E1-002: Manually add a share
-**As a** user whose share wasn't auto-discovered,  
-**I want** to manually enter connection details,  
+### E1-002: Manually add a share ✅
+**As a** user whose share wasn't auto-discovered,
+**I want** to manually enter connection details,
 **So that** I can access shares on devices that don't broadcast.
 
 **Acceptance Criteria:**
-- [ ] User can enter: protocol (SMB/NFS), hostname or IP, share path
-- [ ] Optional fields for username and password (SMB)
-- [ ] Connection is tested before saving
-- [ ] Clear error messages on connection failure
-- [ ] Manual shares appear alongside discovered shares
+- [x] User can enter: protocol (SMB/NFS), hostname or IP, share path
+- [x] Optional fields for username and password (SMB)
+- [x] Connection is tested before saving
+- [x] Clear error messages on connection failure
+- [x] Manual shares appear alongside discovered shares
+
+**Implementation Notes:**
+- `ManualShareInput` model captures user input (protocol, host, share name, credentials)
+- `ShareProtocol` enum supports SMB (NFS deferred to E1-004)
+- `ShareCredentials` model for optional username/password authentication
+- `ConnectionTesting` protocol with `SMBConnectionTester` implementation
+- `ConnectionError` enum provides user-friendly error messages
+- `NetworkDiscoveryService` extended with `addManualShare()` and `removeManualShare()`
+- Manual shares tracked separately and merged in `allShares` computed property
 
 ---
 

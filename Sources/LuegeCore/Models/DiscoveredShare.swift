@@ -8,6 +8,7 @@ public struct DiscoveredShare: Identifiable, Hashable, Sendable {
     public let shareName: String
     public let comment: String?
     public let discoveredAt: Date
+    public let isManuallyAdded: Bool
 
     public init(
         id: UUID = UUID(),
@@ -15,7 +16,8 @@ public struct DiscoveredShare: Identifiable, Hashable, Sendable {
         hostAddress: String,
         shareName: String,
         comment: String? = nil,
-        discoveredAt: Date = Date()
+        discoveredAt: Date = Date(),
+        isManuallyAdded: Bool = false
     ) {
         self.id = id
         self.hostName = hostName
@@ -23,6 +25,7 @@ public struct DiscoveredShare: Identifiable, Hashable, Sendable {
         self.shareName = shareName
         self.comment = comment
         self.discoveredAt = discoveredAt
+        self.isManuallyAdded = isManuallyAdded
     }
 
     /// Display name combining host and share

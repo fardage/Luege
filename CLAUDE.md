@@ -60,9 +60,12 @@ Sources/LuegeCore/
 │   ├── DiscoveryProtocols.swift    # Protocol definitions
 │   ├── BonjourBrowser.swift        # mDNS service discovery
 │   ├── SMBShareEnumerator.swift    # SMB share listing
+│   ├── SMBConnectionTester.swift   # Manual share connection testing
 │   └── NetworkDiscoveryService.swift # Main orchestrator
 └── Models/
-    └── DiscoveredShare.swift       # Data models
+    ├── DiscoveredShare.swift       # Share data model
+    ├── ShareCredentials.swift      # Authentication credentials
+    └── ManualShareInput.swift      # Manual share input model
 
 Tests/
 ├── LuegeCoreTests/      # Unit tests with mocks
@@ -132,8 +135,8 @@ Types: `Implement`, `Add`, `Fix`, `Update`, `Refactor`
 
 ### Completed Stories
 - ✅ E1-001: Auto-discover SMB network shares
+- ✅ E1-002: Manually add a share
 
 ### Next Stories
-- E1-002: Manually add a share
 - E1-003: Save and manage connections
 - E2-001: Browse folder structure
