@@ -61,11 +61,21 @@ Sources/LuegeCore/
 │   ├── BonjourBrowser.swift        # mDNS service discovery
 │   ├── SMBShareEnumerator.swift    # SMB share listing
 │   ├── SMBConnectionTester.swift   # Manual share connection testing
-│   └── NetworkDiscoveryService.swift # Main orchestrator
-└── Models/
-    ├── DiscoveredShare.swift       # Share data model
-    ├── ShareCredentials.swift      # Authentication credentials
-    └── ManualShareInput.swift      # Manual share input model
+│   ├── SMBStatusChecker.swift      # Connection status checking
+│   ├── ConnectionStatusProtocols.swift  # Status management protocols
+│   ├── ConnectionStatusService.swift    # Status tracking service
+│   └── NetworkDiscoveryService.swift    # Main orchestrator
+├── Models/
+│   ├── DiscoveredShare.swift       # Share data model
+│   ├── SavedShare.swift            # Persistent share model
+│   ├── ConnectionStatus.swift      # Status enum
+│   ├── ShareCredentials.swift      # Authentication credentials
+│   └── ManualShareInput.swift      # Manual share input model
+└── Persistence/         # Persistent storage components
+    ├── PersistenceProtocols.swift  # Storage protocols
+    ├── KeychainService.swift       # Secure credential storage
+    ├── FileShareStorage.swift      # JSON metadata storage
+    └── SavedShareStorageService.swift  # Combined persistence
 
 Tests/
 ├── LuegeCoreTests/      # Unit tests with mocks
@@ -136,7 +146,7 @@ Types: `Implement`, `Add`, `Fix`, `Update`, `Refactor`
 ### Completed Stories
 - ✅ E1-001: Auto-discover SMB network shares
 - ✅ E1-002: Manually add a share
+- ✅ E1-003: Save and manage connections
 
 ### Next Stories
-- E1-003: Save and manage connections
 - E2-001: Browse folder structure

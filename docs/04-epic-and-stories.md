@@ -80,16 +80,30 @@
 
 ---
 
-### E1-003: Save and manage connections
+### E1-003: Save and manage connections ✅
 **As a** returning user,
 **I want** my configured shares to be remembered,
 **So that** I don't have to re-enter credentials each session.
 
 **Acceptance Criteria:**
-- [ ] Credentials stored securely in Keychain
-- [ ] Saved shares auto-connect on app launch
-- [ ] User can edit or remove saved shares
-- [ ] Connection status indicator (online/offline) for each share
+- [x] Credentials stored securely in Keychain
+- [x] Saved shares auto-connect on app launch
+- [x] User can edit or remove saved shares
+- [x] Connection status indicator (online/offline) for each share
+
+**Implementation Notes:**
+- `KeychainService` uses Security.framework with `kSecAttrAccessibleAfterFirstUnlock` for tvOS compatibility
+- `FileShareStorage` persists share metadata as JSON in Application Support directory
+- `SavedShareStorageService` combines Keychain (credentials) and file storage (metadata)
+- `SavedShare` model contains credential reference (UUID) without storing actual credentials
+- `ConnectionStatusService` manages status checking for all tracked shares
+- `SMBStatusChecker` uses existing `SMBConnectionTester` for connection validation
+- `ConnectionStatus` enum: unknown, checking, online, offline(reason)
+- `NetworkDiscoveryService` extended with persistence integration:
+  - `loadSavedShares()` called on app launch
+  - `saveShare()`, `updateSavedShare()`, `deleteSavedShare()` for CRUD
+  - `refreshStatus()` and `refreshAllStatuses()` for status monitoring
+  - Background status refresh on launch
 
 ---
 

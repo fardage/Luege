@@ -1,7 +1,7 @@
 import Foundation
 
 /// Represents a discovered SMB network share
-public struct DiscoveredShare: Identifiable, Hashable, Sendable {
+public struct DiscoveredShare: Identifiable, Hashable, Sendable, Codable {
     public let id: UUID
     public let hostName: String
     public let hostAddress: String

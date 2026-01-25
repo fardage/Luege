@@ -92,6 +92,12 @@ public protocol NetworkDiscovering {
     /// All shares (manual + discovered), combined for display
     var allShares: [DiscoveredShare] { get }
 
+    /// Persistently saved shares
+    var savedShares: [SavedShare] { get }
+
+    /// Connection status for each saved share
+    var shareStatuses: [UUID: ConnectionStatus] { get }
+
     /// Whether discovery is currently in progress
     var isScanning: Bool { get }
 
@@ -113,4 +119,43 @@ public protocol NetworkDiscovering {
     /// Remove a manually added share
     /// - Parameter share: The share to remove
     func removeManualShare(_ share: DiscoveredShare)
+
+    // MARK: - Saved Share Management
+
+    /// Load saved shares from persistent storage
+    func loadSavedShares() async throws
+
+    /// Save a discovered share with optional credentials
+    /// - Parameters:
+    ///   - share: The share to save
+    ///   - credentials: Optional credentials for the share
+    ///   - displayName: Optional custom display name
+    /// - Returns: The saved share
+    func saveShare(_ share: DiscoveredShare, credentials: ShareCredentials?, displayName: String?) async throws -> SavedShare
+
+    /// Update an existing saved share
+    /// - Parameters:
+    ///   - share: The share to update
+    ///   - credentials: New credentials (nil to keep existing)
+    ///   - displayName: New display name (nil to keep existing)
+    /// - Returns: The updated share
+    func updateSavedShare(_ share: SavedShare, credentials: ShareCredentials?, displayName: String?) async throws -> SavedShare
+
+    /// Delete a saved share
+    /// - Parameter share: The share to delete
+    func deleteSavedShare(_ share: SavedShare) async throws
+
+    /// Get credentials for a saved share
+    /// - Parameter share: The share to get credentials for
+    /// - Returns: The credentials, or nil if none saved
+    func credentials(for share: SavedShare) async throws -> ShareCredentials?
+
+    // MARK: - Status Management
+
+    /// Refresh the connection status of a specific share
+    /// - Parameter share: The share to check
+    func refreshStatus(for share: SavedShare) async
+
+    /// Refresh the connection status of all saved shares
+    func refreshAllStatuses() async
 }

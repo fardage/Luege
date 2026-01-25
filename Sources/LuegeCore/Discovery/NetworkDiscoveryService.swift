@@ -5,7 +5,13 @@ import Foundation
 public final class NetworkDiscoveryService: NetworkDiscovering, ObservableObject {
     @Published public private(set) var shares: [DiscoveredShare] = []
     @Published public private(set) var manualShares: [DiscoveredShare] = []
+    @Published public private(set) var savedShares: [SavedShare] = []
     @Published public private(set) var isScanning: Bool = false
+
+    /// Connection status for each saved share
+    public var shareStatuses: [UUID: ConnectionStatus] {
+        statusService.statuses
+    }
 
     /// All shares (manual + discovered), combined for display
     public var allShares: [DiscoveredShare] {
@@ -17,6 +23,8 @@ public final class NetworkDiscoveryService: NetworkDiscovering, ObservableObject
     private let hostDiscoverer: any HostDiscovering
     private let shareEnumerator: any ShareEnumerating
     private let connectionTester: any ConnectionTesting
+    private let persistenceService: SavedShareStorageService
+    private let statusService: ConnectionStatusService
     private let timeout: TimeInterval
 
     private var discoveryTask: Task<Void, Never>?
@@ -27,16 +35,22 @@ public final class NetworkDiscoveryService: NetworkDiscovering, ObservableObject
     ///   - hostDiscoverer: Component for discovering hosts via Bonjour
     ///   - shareEnumerator: Component for listing shares on hosts
     ///   - connectionTester: Component for testing connections to shares
+    ///   - persistenceService: Service for persisting saved shares
+    ///   - statusService: Service for checking connection status
     ///   - timeout: Maximum time for discovery (default 10 seconds per acceptance criteria)
     public init(
         hostDiscoverer: any HostDiscovering = BonjourBrowser(),
         shareEnumerator: any ShareEnumerating = SMBShareEnumerator(),
         connectionTester: any ConnectionTesting = SMBConnectionTester(),
+        persistenceService: SavedShareStorageService = SavedShareStorageService(),
+        statusService: ConnectionStatusService = ConnectionStatusService(),
         timeout: TimeInterval = 10.0
     ) {
         self.hostDiscoverer = hostDiscoverer
         self.shareEnumerator = shareEnumerator
         self.connectionTester = connectionTester
+        self.persistenceService = persistenceService
+        self.statusService = statusService
         self.timeout = timeout
     }
 
@@ -158,5 +172,82 @@ public final class NetworkDiscoveryService: NetworkDiscovering, ObservableObject
 
     public func removeManualShare(_ share: DiscoveredShare) {
         manualShares.removeAll { $0.id == share.id }
+    }
+
+    // MARK: - Saved Share Management
+
+    public func loadSavedShares() async throws {
+        savedShares = try await persistenceService.loadAll()
+
+        // Start tracking status for all saved shares
+        for share in savedShares {
+            statusService.startTracking(share.id)
+        }
+
+        // Refresh statuses in background
+        Task {
+            await refreshAllStatuses()
+        }
+    }
+
+    public func saveShare(
+        _ share: DiscoveredShare,
+        credentials: ShareCredentials?,
+        displayName: String?
+    ) async throws -> SavedShare {
+        let savedShare = try await persistenceService.save(share, credentials: credentials, displayName: displayName)
+        savedShares = await persistenceService.savedShares
+
+        // Start tracking status
+        statusService.startTracking(savedShare.id)
+
+        // Check status in background
+        Task {
+            await refreshStatus(for: savedShare)
+        }
+
+        return savedShare
+    }
+
+    public func updateSavedShare(
+        _ share: SavedShare,
+        credentials: ShareCredentials?,
+        displayName: String?
+    ) async throws -> SavedShare {
+        let updatedShare = try await persistenceService.update(share, credentials: credentials, displayName: displayName)
+        savedShares = await persistenceService.savedShares
+
+        // Refresh status with new credentials
+        Task {
+            await refreshStatus(for: updatedShare)
+        }
+
+        return updatedShare
+    }
+
+    public func deleteSavedShare(_ share: SavedShare) async throws {
+        statusService.stopTracking(share.id)
+        try await persistenceService.delete(share)
+        savedShares = await persistenceService.savedShares
+    }
+
+    public func credentials(for share: SavedShare) async throws -> ShareCredentials? {
+        try await persistenceService.credentials(for: share)
+    }
+
+    // MARK: - Status Management
+
+    public func refreshStatus(for share: SavedShare) async {
+        let creds = try? await persistenceService.credentials(for: share)
+        await statusService.refreshStatus(for: share, credentials: creds)
+    }
+
+    public func refreshAllStatuses() async {
+        var sharesWithCredentials: [(SavedShare, ShareCredentials?)] = []
+        for share in savedShares {
+            let creds = try? await persistenceService.credentials(for: share)
+            sharesWithCredentials.append((share, creds))
+        }
+        await statusService.refreshAllStatuses(for: sharesWithCredentials)
     }
 }
