@@ -147,8 +147,9 @@ xcodebuild test -project Luege/Luege.xcodeproj -scheme "LuegeScreenshotTests tvO
 2. Review the generated snapshots in `Luege/LuegeScreenshotTests/__Snapshots__/`
 3. Verify the UI looks correct on both platforms
 4. Check both light mode and dark mode variants
+5. Commit updated snapshots so CI can catch visual regressions
 
-Snapshots are stored locally (gitignored) and named with platform suffixes (`.iOS.png`, `.tvOS.png`).
+Snapshots are committed to the repository and named with platform suffixes (`.iOS.png`, `.tvOS.png`).
 
 ## Documentation
 
