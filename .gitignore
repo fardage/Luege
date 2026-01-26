@@ -14,3 +14,6 @@ docker/test-data/
 
 # macOS
 .DS_Store
+
+# Screenshot test snapshots (generated locally)
+Luege/LuegeScreenshotTests/__Snapshots__/

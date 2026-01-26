@@ -1,0 +1,127 @@
+name: Luege
+options:
+  bundleIdPrefix: com.luege
+  deploymentTarget:
+    tvOS: "17.0"
+    iOS: "17.0"
+  xcodeVersion: "15.0"
+  createIntermediateGroups: true
+
+packages:
+  LuegeCore:
+    path: ../
+  SnapshotTesting:
+    url: https://github.com/pointfreeco/swift-snapshot-testing
+    from: "1.15.0"
+
+targets:
+  Luege tvOS:
+    type: application
+    platform: tvOS
+    sources:
+      - path: Shared
+      - path: tvOS
+    dependencies:
+      - package: LuegeCore
+        product: LuegeCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.luege.app
+        INFOPLIST_FILE: tvOS/Info.plist
+        PRODUCT_NAME: Luege
+        ASSETCATALOG_COMPILER_APPICON_NAME: App Icon & Top Shelf Image
+        DEVELOPMENT_TEAM: ""
+        CODE_SIGN_STYLE: Automatic
+
+  Luege iOS:
+    type: application
+    platform: iOS
+    sources:
+      - path: Shared
+      - path: iOS
+    dependencies:
+      - package: LuegeCore
+        product: LuegeCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.luege.app
+        INFOPLIST_FILE: iOS/Info.plist
+        PRODUCT_NAME: Luege
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: "1,2"
+        DEVELOPMENT_TEAM: ""
+        CODE_SIGN_STYLE: Automatic
+        SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: NO
+
+  LuegeScreenshotTests iOS:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: LuegeScreenshotTests
+    dependencies:
+      - target: Luege iOS
+      - package: SnapshotTesting
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.luege.screenshottests
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Luege.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Luege"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        GENERATE_INFOPLIST_FILE: YES
+
+  LuegeScreenshotTests tvOS:
+    type: bundle.unit-test
+    platform: tvOS
+    sources:
+      - path: LuegeScreenshotTests
+    dependencies:
+      - target: Luege tvOS
+      - package: SnapshotTesting
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.luege.screenshottests
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Luege.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Luege"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  Luege iOS:
+    build:
+      targets:
+        Luege iOS: all
+    run:
+      config: Debug
+    archive:
+      config: Release
+
+  Luege tvOS:
+    build:
+      targets:
+        Luege tvOS: all
+    run:
+      config: Debug
+    archive:
+      config: Release
+
+  LuegeScreenshotTests iOS:
+    build:
+      targets:
+        Luege iOS: all
+        LuegeScreenshotTests iOS: [test]
+    test:
+      gatherCoverageData: false
+      targets:
+        - name: LuegeScreenshotTests iOS
+          parallelizable: false
+          randomExecutionOrder: false
+
+  LuegeScreenshotTests tvOS:
+    build:
+      targets:
+        Luege tvOS: all
+        LuegeScreenshotTests tvOS: [test]
+    test:
+      gatherCoverageData: false
+      targets:
+        - name: LuegeScreenshotTests tvOS
+          parallelizable: false
+          randomExecutionOrder: false

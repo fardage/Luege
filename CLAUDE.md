@@ -95,6 +95,34 @@ Tests/
 - **Unit tests**: Use mocks to test logic without network
 - **Integration tests**: Use Docker Samba server for real SMB testing
 - **Bonjour tests**: Skip in Docker environment (mDNS doesn't cross network boundaries)
+- **Screenshot tests**: Visual regression tests for UI components
+
+### Screenshot Tests
+
+The project includes snapshot tests for visual regression testing of UI components.
+
+**Running screenshot tests:**
+```bash
+# iOS tests
+xcodebuild test -project Luege/Luege.xcodeproj -scheme "LuegeScreenshotTests iOS" -destination "platform=iOS Simulator,name=iPhone 17"
+
+# tvOS tests
+xcodebuild test -project Luege/Luege.xcodeproj -scheme "LuegeScreenshotTests tvOS" -destination "platform=tvOS Simulator,name=Apple TV"
+```
+
+**Recording new snapshots:**
+1. Set `isRecording = true` in `LuegeScreenshotTests/Shared/SnapshotTestCase.swift`
+2. Run the tests for both platforms
+3. Set `isRecording = false`
+4. Run tests again to verify they pass
+
+**After building or adjusting UI:**
+1. Always run screenshot tests for both iOS and tvOS
+2. Review the generated snapshots in `Luege/LuegeScreenshotTests/__Snapshots__/`
+3. Verify the UI looks correct on both platforms
+4. Check both light mode and dark mode variants
+
+Snapshots are stored locally (gitignored) and named with platform suffixes (`.iOS.png`, `.tvOS.png`).
 
 ## Documentation
 
