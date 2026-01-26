@@ -123,17 +123,31 @@
 
 ## E2: File Browsing
 
-### E2-001: Browse folder structure
-**As a** user connected to a share,  
-**I want** to navigate folders using my Apple TV remote,  
+### E2-001: Browse folder structure ✅
+**As a** user connected to a share,
+**I want** to navigate folders using my Apple TV remote,
 **So that** I can find and select videos to play.
 
 **Acceptance Criteria:**
-- [ ] Folders and files displayed in a grid or list view
-- [ ] Folders show folder icon; video files show thumbnail or poster if available
-- [ ] Swipe/click navigation with focus states
-- [ ] Back button returns to parent folder
-- [ ] Breadcrumb or path indicator shows current location
+- [x] Folders and files displayed in a grid or list view
+- [x] Folders show folder icon; video files show film icon (thumbnails deferred)
+- [x] Swipe/click navigation with focus states
+- [x] Back button returns to parent folder
+- [x] Breadcrumb or path indicator shows current location
+
+**Implementation Notes:**
+- `FileEntry` model with type detection (folder, file, symlink, unknown)
+- `FileEntryType` enum for categorization
+- `DirectoryBrowsing` protocol with `SMBDirectoryBrowser` implementation using AMSMB2
+- `BrowsingError` enum for error handling (notConnected, pathNotFound, accessDenied, connectionLost, timeout)
+- `FolderBrowserViewModel` manages navigation state with path stack
+- `FolderBrowserView` displays entries with loading, error, empty states
+- `FileEntryRow` shows icon by type (folder.fill, film, doc) with file info
+- `BreadcrumbBar` shows navigation path with tappable components
+- Navigation from `SourcesView` via `NavigationLink` to `FolderBrowserView`
+- Entries sorted: folders first, then alphabetically
+- Video extensions supported: mkv, mp4, avi, mov, wmv, m4v, ts, webm
+- Platform-specific: iOS pull-to-refresh, tvOS toolbar refresh
 
 ---
 

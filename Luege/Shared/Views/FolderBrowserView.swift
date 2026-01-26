@@ -1,0 +1,149 @@
+import SwiftUI
+import LuegeCore
+
+struct FolderBrowserView: View {
+    @StateObject private var viewModel: FolderBrowserViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    init(share: SavedShare, discoveryService: NetworkDiscoveryService) {
+        _viewModel = StateObject(wrappedValue: FolderBrowserViewModel(
+            share: share,
+            credentialProvider: { [weak discoveryService] in
+                try await discoveryService?.credentials(for: share)
+            }
+        ))
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            BreadcrumbBar(breadcrumbs: viewModel.breadcrumbs) { pathIndex in
+                Task {
+                    await viewModel.navigateTo(pathIndex: pathIndex)
+                }
+            }
+
+            Divider()
+
+            contentView
+        }
+        .navigationTitle("Browse")
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                if viewModel.isLoading {
+                    ProgressView()
+                } else {
+                    Button {
+                        Task {
+                            await viewModel.refresh()
+                        }
+                    } label: {
+                        Label("Refresh", systemImage: "arrow.clockwise")
+                    }
+                }
+            }
+        }
+        .task {
+            await viewModel.connect()
+        }
+        .onDisappear {
+            Task {
+                await viewModel.disconnect()
+            }
+        }
+        #if os(iOS)
+        .refreshable {
+            await viewModel.refresh()
+        }
+        #endif
+    }
+
+    @ViewBuilder
+    private var contentView: some View {
+        if viewModel.isLoading && viewModel.entries.isEmpty {
+            loadingView
+        } else if let error = viewModel.error {
+            errorView(error)
+        } else if viewModel.entries.isEmpty {
+            emptyView
+        } else {
+            listView
+        }
+    }
+
+    private var loadingView: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+            Text("Loading...")
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func errorView(_ error: BrowsingError) -> some View {
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.largeTitle)
+                .foregroundStyle(.orange)
+
+            Text("Error")
+                .font(.headline)
+
+            Text(error.localizedDescription)
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+
+            Button("Retry") {
+                Task {
+                    await viewModel.connect()
+                }
+            }
+            .buttonStyle(.bordered)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var emptyView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "folder")
+                .font(.largeTitle)
+                .foregroundStyle(.secondary)
+
+            Text("Empty Folder")
+                .font(.headline)
+
+            Text("This folder has no files or subfolders.")
+                .font(.body)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var listView: some View {
+        List(viewModel.sortedEntries) { entry in
+            FileEntryRow(entry: entry) {
+                handleEntryTap(entry)
+            }
+            #if os(tvOS)
+            .focusable()
+            #endif
+        }
+        .listStyle(.plain)
+    }
+
+    private func handleEntryTap(_ entry: FileEntry) {
+        if entry.isFolder {
+            Task {
+                await viewModel.navigateInto(entry)
+            }
+        } else if entry.isVideoFile {
+            // Placeholder for E3-001: Video playback
+            // For now, just show that video was tapped
+            print("Video tapped: \(entry.name)")
+        }
+    }
+}

@@ -1,7 +1,7 @@
 import Foundation
 
 /// Represents a persistently saved SMB share
-public struct SavedShare: Identifiable, Codable, Sendable, Equatable {
+public struct SavedShare: Identifiable, Codable, Sendable, Equatable, Hashable {
     public let id: UUID
     public let hostName: String
     public let hostAddress: String

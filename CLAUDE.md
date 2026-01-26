@@ -9,6 +9,7 @@ Luege is a tvOS/iOS media player for playing content directly from SMB network s
 - SwiftUI (native-first approach)
 - AMSMB2 for SMB2/3 protocol
 - Network.framework for Bonjour/mDNS discovery
+- XcodeGen for Xcode project generation
 
 ## Development Workflow
 
@@ -38,6 +39,16 @@ LUEGE_TEST_SMB_SERVER=localhost swift test --filter LuegeIntegrationTests
 swift test
 ```
 
+### XcodeGen
+
+The Xcode project is generated using XcodeGen. After adding new source files:
+
+```bash
+cd Luege && xcodegen generate
+```
+
+The `project.yml` defines targets for iOS, tvOS, and screenshot tests. Source files in `Shared/` are automatically included in both platform targets.
+
 ### Docker Test Environment
 
 The project includes a Docker-based Samba server for integration testing:
@@ -56,6 +67,10 @@ Test shares: `TestShare`, `Movies`, `Music` (guest:guest credentials)
 
 ```
 Sources/LuegeCore/
+├── Browsing/            # Directory browsing components
+│   ├── BrowsingProtocols.swift     # DirectoryBrowsing protocol
+│   ├── BrowsingError.swift         # Error types
+│   └── SMBDirectoryBrowser.swift   # AMSMB2 implementation
 ├── Discovery/           # Network discovery components
 │   ├── DiscoveryProtocols.swift    # Protocol definitions
 │   ├── BonjourBrowser.swift        # mDNS service discovery
@@ -70,12 +85,23 @@ Sources/LuegeCore/
 │   ├── SavedShare.swift            # Persistent share model
 │   ├── ConnectionStatus.swift      # Status enum
 │   ├── ShareCredentials.swift      # Authentication credentials
-│   └── ManualShareInput.swift      # Manual share input model
+│   ├── ManualShareInput.swift      # Manual share input model
+│   └── FileEntry.swift             # File/folder entry model
 └── Persistence/         # Persistent storage components
     ├── PersistenceProtocols.swift  # Storage protocols
     ├── KeychainService.swift       # Secure credential storage
     ├── FileShareStorage.swift      # JSON metadata storage
     └── SavedShareStorageService.swift  # Combined persistence
+
+Luege/Shared/
+├── Views/               # SwiftUI views
+│   ├── FolderBrowserView.swift     # Directory browsing view
+│   ├── FileEntryRow.swift          # File/folder row component
+│   ├── BreadcrumbBar.swift         # Navigation breadcrumb
+│   └── ...
+└── ViewModels/          # View models
+    ├── FolderBrowserViewModel.swift  # Browsing state management
+    └── ...
 
 Tests/
 ├── LuegeCoreTests/      # Unit tests with mocks
@@ -175,6 +201,8 @@ Types: `Implement`, `Add`, `Fix`, `Update`, `Refactor`
 - ✅ E1-001: Auto-discover SMB network shares
 - ✅ E1-002: Manually add a share
 - ✅ E1-003: Save and manage connections
+- ✅ E2-001: Browse folder structure
 
 ### Next Stories
-- E2-001: Browse folder structure
+- E2-002: Filter to video files
+- E3-001: Play video files

@@ -105,13 +105,16 @@ struct SourcesView: View {
             if !savedShares.isEmpty {
                 Section("Saved") {
                     ForEach(savedShares) { share in
-                        SavedShareRow(
-                            share: share,
-                            status: status(for: share),
-                            onDelete: {
-                                confirmDelete(share)
-                            }
-                        )
+                        NavigationLink(value: share) {
+                            SavedShareRowContent(
+                                share: share,
+                                status: status(for: share),
+                                onDelete: {
+                                    confirmDelete(share)
+                                }
+                            )
+                        }
+                        .disabled(!status(for: share).isOnline)
                     }
                 }
             }
@@ -137,6 +140,9 @@ struct SourcesView: View {
                     }
                 }
             }
+        }
+        .navigationDestination(for: SavedShare.self) { share in
+            FolderBrowserView(share: share, discoveryService: discoveryService)
         }
     }
 

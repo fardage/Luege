@@ -1,7 +1,8 @@
 import SwiftUI
 import LuegeCore
 
-struct SavedShareRow: View {
+/// Content view for a saved share row (used inside NavigationLink)
+struct SavedShareRowContent: View {
     let share: SavedShare
     let status: ConnectionStatus
     let onDelete: () -> Void
@@ -21,7 +22,6 @@ struct SavedShareRow: View {
 
             ConnectionStatusBadge(status: status)
         }
-        .contentShape(Rectangle())
         #if os(iOS)
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive, action: onDelete) {
@@ -37,5 +37,17 @@ struct SavedShareRow: View {
         #endif
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(share.displayName), \(status.displayText)")
+    }
+}
+
+/// Standalone saved share row (for use without NavigationLink)
+struct SavedShareRow: View {
+    let share: SavedShare
+    let status: ConnectionStatus
+    let onDelete: () -> Void
+
+    var body: some View {
+        SavedShareRowContent(share: share, status: status, onDelete: onDelete)
+            .contentShape(Rectangle())
     }
 }
