@@ -20,12 +20,20 @@ Luege is a tvOS/iOS media player for playing content directly from SMB network s
 3. **Implement core logic** in `Sources/LuegeCore/`
 4. **Write unit tests** with mocks in `Tests/LuegeCoreTests/`
 5. **Write integration tests** in `Tests/LuegeIntegrationTests/`
-6. **Verify with Docker test environment**
+6. **Verify with Docker test environment** (`make test-integration`)
 7. **Update story status** in docs (mark acceptance criteria as complete)
-8. **Commit with descriptive message**
+8. **Commit** - pre-commit hook runs tests automatically
 
 ### Running Tests
 
+**Quick commands (via Makefile):**
+```bash
+make test-unit         # Unit tests only
+make test-integration  # Integration tests with Docker
+make test              # All tests
+```
+
+**Manual commands:**
 ```bash
 # Unit tests (no network required)
 swift test --filter LuegeCoreTests
@@ -37,6 +45,31 @@ LUEGE_TEST_SMB_SERVER=localhost swift test --filter LuegeIntegrationTests
 
 # All tests
 swift test
+```
+
+### Pre-commit Hooks
+
+The project includes a pre-commit hook that automatically runs tests before each commit:
+
+**Install the hook:**
+```bash
+make install-hooks
+```
+
+**What it does:**
+- Always runs unit tests before allowing a commit
+- If Docker is running with the test server (`luege-test-smb` container), also runs integration tests
+- Blocks the commit if any tests fail
+
+**Workflow:**
+1. Install the hook once: `make install-hooks`
+2. Start Docker test server when working on SMB features: `make start-server`
+3. Commit as normal - tests run automatically
+4. Stop server when done: `make stop-server`
+
+**Bypassing (not recommended):**
+```bash
+git commit --no-verify -m "message"  # Skips pre-commit hook
 ```
 
 ### XcodeGen
@@ -193,7 +226,7 @@ Types: `Implement`, `Add`, `Fix`, `Update`, `Refactor`
 **Pre-commit checklist:**
 - [ ] No secrets or credentials in code
 - [ ] No hardcoded sensitive URLs or IPs
-- [ ] Tests pass
+- [ ] Tests pass (enforced by pre-commit hook)
 - [ ] Code reviewed for security issues
 
 ## Current Status
