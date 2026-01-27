@@ -16,8 +16,8 @@ Luege/
 ├── Tools/                      # Development utilities
 │   ├── docker/                # Docker test environment
 │   └── scripts/               # Build and test scripts
-└── docs/                       # Documentation
-    └── CLAUDE.md              # Developer guide
+├── docs/                       # Documentation
+└── CLAUDE.md                   # Developer guide
 ```
 
 ## Quick Start
@@ -37,7 +37,7 @@ make test
 
 ### Development Workflow
 
-See [docs/CLAUDE.md](docs/CLAUDE.md) for detailed development guidelines, including:
+See [CLAUDE.md](CLAUDE.md) for detailed development guidelines, including:
 - Story implementation cycle
 - Testing strategy
 - Pre-commit hooks setup
