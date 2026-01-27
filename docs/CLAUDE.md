@@ -72,6 +72,15 @@ make install-hooks
 git commit --no-verify -m "message"  # Skips pre-commit hook
 ```
 
+### Xcode Workspace
+
+**Opening the project:**
+```bash
+open Luege.xcworkspace
+```
+
+Always use the workspace (not `App/Luege.xcodeproj` directly) as it provides unified access to both the app project and the LuegeCore Swift package in a single window.
+
 ### XcodeGen
 
 The Xcode project is generated using XcodeGen. After adding new source files:
@@ -80,7 +89,7 @@ The Xcode project is generated using XcodeGen. After adding new source files:
 cd App && xcodegen generate
 ```
 
-The `project.yml` defines targets for iOS, tvOS, and screenshot tests. Source files in `Shared/` are automatically included in both platform targets.
+The `project.yml` defines targets for iOS, tvOS, and screenshot tests. Source files in `Shared/` are automatically included in both platform targets. The workspace uses relative paths, so regenerating the Xcode project won't break the workspace.
 
 ### Docker Test Environment
 
@@ -163,11 +172,13 @@ The project includes snapshot tests for visual regression testing of UI componen
 **Running screenshot tests:**
 ```bash
 # iOS tests
-xcodebuild test -project App/Luege.xcodeproj -scheme "LuegeScreenshotTests iOS" -destination "platform=iOS Simulator,name=iPhone 17"
+xcodebuild test -workspace Luege.xcworkspace -scheme "LuegeScreenshotTests iOS" -destination "platform=iOS Simulator,name=iPhone 17"
 
 # tvOS tests
-xcodebuild test -project App/Luege.xcodeproj -scheme "LuegeScreenshotTests tvOS" -destination "platform=tvOS Simulator,name=Apple TV"
+xcodebuild test -workspace Luege.xcworkspace -scheme "LuegeScreenshotTests tvOS" -destination "platform=tvOS Simulator,name=Apple TV"
 ```
+
+Note: Use `-workspace Luege.xcworkspace` (not `-project`) for running tests from the command line.
 
 **Recording new snapshots:**
 1. Set `isRecording = true` in `App/LuegeScreenshotTests/Shared/SnapshotTestCase.swift`

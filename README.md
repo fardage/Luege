@@ -51,10 +51,12 @@ See [docs/CLAUDE.md](docs/CLAUDE.md) for detailed development guidelines, includ
    cd App && xcodegen generate
    ```
 
-2. Open in Xcode:
+2. Open workspace in Xcode:
    ```bash
-   open App/Luege.xcodeproj
+   open Luege.xcworkspace
    ```
+
+   Note: Use the workspace (not `App/Luege.xcodeproj`) to edit both the app and LuegeCore library in a single window.
 
 3. Build for iOS or tvOS targets
 

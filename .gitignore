@@ -5,7 +5,15 @@ Package.resolved
 
 # Xcode
 *.xcodeproj/
-*.xcworkspace/
+# Auto-generated workspaces (ignore these)
+.swiftpm/xcode/package.xcworkspace/
+*.xcodeproj/project.xcworkspace/
+
+# But allow our custom root workspace
+!Luege.xcworkspace/
+
+# Exclude user-specific workspace data
+Luege.xcworkspace/xcuserdata/
 xcuserdata/
 DerivedData/
 
