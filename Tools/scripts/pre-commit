@@ -1,30 +1,15 @@
 #!/bin/bash
-# Pre-commit hook: Run unit tests before committing
+# Pre-commit hook: Run all tests before committing
 
-echo "Running unit tests..."
-swift test --filter LuegeCoreTests
+echo "Running tests..."
+make test-all
 
 if [ $? -ne 0 ]; then
     echo ""
-    echo "Unit tests failed. Commit aborted."
+    echo "Tests failed. Commit aborted."
     echo "Fix the failing tests and try again."
     exit 1
 fi
 
-echo "Unit tests passed!"
-
-# Check if Docker is running and integration tests should run
-if docker info > /dev/null 2>&1; then
-    if docker ps | grep -q luege-test-smb; then
-        echo "Running integration tests (Docker detected)..."
-        LUEGE_TEST_SMB_SERVER=localhost swift test --filter LuegeIntegrationTests
-        if [ $? -ne 0 ]; then
-            echo ""
-            echo "Integration tests failed. Commit aborted."
-            exit 1
-        fi
-        echo "Integration tests passed!"
-    fi
-fi
-
+echo "All tests passed!"
 exit 0
