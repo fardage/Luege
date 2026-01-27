@@ -94,6 +94,87 @@ final class FileEntryTests: XCTestCase {
         XCTAssertFalse(entry.isVideoFile)
     }
 
+    // MARK: - Subtitle Detection
+
+    func testIsSubtitleFileForSrt() {
+        let entry = FileEntry(name: "movie.srt", path: "movie.srt", type: .file)
+        XCTAssertTrue(entry.isSubtitleFile)
+    }
+
+    func testIsSubtitleFileForAss() {
+        let entry = FileEntry(name: "movie.ass", path: "movie.ass", type: .file)
+        XCTAssertTrue(entry.isSubtitleFile)
+    }
+
+    func testIsSubtitleFileForSub() {
+        let entry = FileEntry(name: "movie.sub", path: "movie.sub", type: .file)
+        XCTAssertTrue(entry.isSubtitleFile)
+    }
+
+    func testIsSubtitleFileForSsa() {
+        let entry = FileEntry(name: "movie.ssa", path: "movie.ssa", type: .file)
+        XCTAssertTrue(entry.isSubtitleFile)
+    }
+
+    func testIsSubtitleFileForIdx() {
+        let entry = FileEntry(name: "movie.idx", path: "movie.idx", type: .file)
+        XCTAssertTrue(entry.isSubtitleFile)
+    }
+
+    func testIsSubtitleFileForVtt() {
+        let entry = FileEntry(name: "movie.vtt", path: "movie.vtt", type: .file)
+        XCTAssertTrue(entry.isSubtitleFile)
+    }
+
+    func testIsSubtitleFileWithUppercaseExtension() {
+        let entry = FileEntry(name: "movie.SRT", path: "movie.SRT", type: .file)
+        XCTAssertTrue(entry.isSubtitleFile)
+    }
+
+    func testIsSubtitleFileForNonSubtitle() {
+        let entry = FileEntry(name: "document.txt", path: "document.txt", type: .file)
+        XCTAssertFalse(entry.isSubtitleFile)
+    }
+
+    func testIsSubtitleFileForVideo() {
+        let entry = FileEntry(name: "movie.mp4", path: "movie.mp4", type: .file)
+        XCTAssertFalse(entry.isSubtitleFile)
+    }
+
+    func testIsSubtitleFileForFolder() {
+        let entry = FileEntry(name: "subtitles.srt", path: "subtitles.srt", type: .folder)
+        XCTAssertFalse(entry.isSubtitleFile)
+    }
+
+    // MARK: - Base Filename
+
+    func testBaseFileNameForSimpleFile() {
+        let entry = FileEntry(name: "movie.mkv", path: "movie.mkv", type: .file)
+        XCTAssertEqual(entry.baseFileName, "movie")
+    }
+
+    func testBaseFileNameWithMultipleDots() {
+        let entry = FileEntry(name: "movie.en.srt", path: "movie.en.srt", type: .file)
+        XCTAssertEqual(entry.baseFileName, "movie.en")
+    }
+
+    func testBaseFileNameForFileWithoutExtension() {
+        let entry = FileEntry(name: "README", path: "README", type: .file)
+        XCTAssertEqual(entry.baseFileName, "README")
+    }
+
+    func testBaseFileNameForFolder() {
+        let entry = FileEntry(name: "folder.name", path: "folder.name", type: .folder)
+        XCTAssertEqual(entry.baseFileName, "folder")
+    }
+
+    // MARK: - Subtitle Extensions Set
+
+    func testAllSupportedSubtitleExtensions() {
+        let expected: Set<String> = ["srt", "ass", "sub", "ssa", "idx", "vtt"]
+        XCTAssertEqual(FileEntry.subtitleExtensions, expected)
+    }
+
     // MARK: - Formatted Size
 
     func testFormattedSizeForSmallFile() {

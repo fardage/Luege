@@ -7,6 +7,7 @@ final class FolderBrowserViewModel: ObservableObject {
     @Published private(set) var isLoading = false
     @Published private(set) var error: BrowsingError?
     @Published private(set) var pathStack: [String] = []
+    @Published var showAllFiles = false
 
     private let share: SavedShare
     private let browser: any DirectoryBrowsing
@@ -31,14 +32,83 @@ final class FolderBrowserViewModel: ObservableObject {
         !pathStack.isEmpty
     }
 
-    /// Entries sorted with folders first, then alphabetically
-    var sortedEntries: [FileEntry] {
-        entries.sorted { lhs, rhs in
+    /// Subtitle associations mapping video base names to subtitle entries
+    var subtitleAssociations: [String: [FileEntry]] {
+        var associations: [String: [FileEntry]] = [:]
+        let videos = entries.filter { $0.isVideoFile }
+        let subtitles = entries.filter { $0.isSubtitleFile }
+
+        for subtitle in subtitles {
+            let subtitleBase = subtitle.baseFileName
+
+            // Try to find matching video by checking if video base name matches
+            // This handles cases like:
+            // - "movie.srt" matches "movie.mkv"
+            // - "movie.en.srt" matches "movie.mkv" (language suffix)
+            for video in videos {
+                let videoBase = video.baseFileName
+                // Check if subtitle base starts with video base
+                // or if they match exactly
+                if subtitleBase == videoBase || subtitleBase.hasPrefix(videoBase + ".") {
+                    associations[videoBase, default: []].append(subtitle)
+                    break
+                }
+            }
+        }
+
+        return associations
+    }
+
+    /// Filtered and sorted entries based on showAllFiles toggle
+    var filteredEntries: [FileEntry] {
+        let videoBaseNames = Set(entries.filter { $0.isVideoFile }.map { $0.baseFileName })
+
+        let filtered = entries.filter { entry in
+            // Always show folders
+            if entry.isFolder {
+                return true
+            }
+
+            // Always show videos
+            if entry.isVideoFile {
+                return true
+            }
+
+            // Hide subtitle files that have a matching video
+            if entry.isSubtitleFile {
+                let subtitleBase = entry.baseFileName
+                // Check if this subtitle matches any video
+                for videoBase in videoBaseNames {
+                    if subtitleBase == videoBase || subtitleBase.hasPrefix(videoBase + ".") {
+                        return false
+                    }
+                }
+                // Orphan subtitle: show only if showAllFiles is true
+                return showAllFiles
+            }
+
+            // Other files: show only if showAllFiles is true
+            return showAllFiles
+        }
+
+        // Apply existing sort (folders first, alphabetical)
+        return filtered.sorted { lhs, rhs in
             if lhs.isFolder != rhs.isFolder {
                 return lhs.isFolder
             }
             return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
         }
+    }
+
+    /// Entries sorted with folders first, then alphabetically (deprecated, use filteredEntries)
+    var sortedEntries: [FileEntry] {
+        filteredEntries
+    }
+
+    /// Get subtitle files associated with a video
+    func subtitles(for video: FileEntry) -> [FileEntry] {
+        guard video.isVideoFile else { return [] }
+        return subtitleAssociations[video.baseFileName] ?? []
     }
 
     init(

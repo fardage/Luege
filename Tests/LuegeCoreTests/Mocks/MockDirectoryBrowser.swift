@@ -84,4 +84,9 @@ final class MockDirectoryBrowser: DirectoryBrowsing, @unchecked Sendable {
         let path = parentPath.isEmpty ? name : "\(parentPath)/\(name)"
         return FileEntry(name: name, path: path, type: .file, size: size, modifiedDate: Date())
     }
+
+    static func sampleSubtitle(name: String, at parentPath: String = "", size: Int64 = 50_000) -> FileEntry {
+        let path = parentPath.isEmpty ? name : "\(parentPath)/\(name)"
+        return FileEntry(name: name, path: path, type: .file, size: size, modifiedDate: Date())
+    }
 }

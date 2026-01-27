@@ -151,16 +151,26 @@
 
 ---
 
-### E2-002: Filter to video files
-**As a** user browsing folders,  
-**I want** non-video files to be hidden or de-emphasized,  
+### E2-002: Filter to video files ✅
+**As a** user browsing folders,
+**I want** non-video files to be hidden or de-emphasized,
 **So that** the interface stays focused on playable content.
 
 **Acceptance Criteria:**
-- [ ] Recognized video extensions: MKV, MP4, AVI, MOV, WMV, M4V, TS, etc.
-- [ ] Non-video files hidden by default
-- [ ] Optional toggle to show all files
-- [ ] Subtitle files (.srt, .ass, .sub) associated with their video, not shown separately
+- [x] Recognized video extensions: MKV, MP4, AVI, MOV, WMV, M4V, TS, etc.
+- [x] Non-video files hidden by default
+- [x] Optional toggle to show all files
+- [x] Subtitle files (.srt, .ass, .sub) associated with their video, not shown separately
+
+**Implementation Notes:**
+- `FileEntry` model extended with subtitle detection (`subtitleExtensions`, `isSubtitleFile`, `baseFileName`)
+- `FolderBrowserViewModel` adds filtering logic with `showAllFiles` toggle
+- `filteredEntries` computed property filters based on user preference
+- Subtitle association algorithm matches by base filename (handles "movie.en.srt" patterns)
+- UI toggle in toolbar for both iOS and tvOS ("Show All Files" / "Show Videos Only")
+- Context-aware empty state shows "No Video Files" with toggle button when applicable
+- Orphan subtitles (no matching video) shown in "Show All Files" mode
+- Public API `subtitles(for:)` prepares for E3-004 subtitle playback support
 
 ---
 

@@ -44,6 +44,17 @@ struct FolderBrowserView: View {
                     }
                 }
             }
+
+            ToolbarItem(placement: .automatic) {
+                Button {
+                    viewModel.showAllFiles.toggle()
+                } label: {
+                    Label(
+                        viewModel.showAllFiles ? "Show Videos Only" : "Show All Files",
+                        systemImage: viewModel.showAllFiles ? "film" : "doc.on.doc"
+                    )
+                }
+            }
         }
         .task {
             await viewModel.connect()
@@ -109,18 +120,34 @@ struct FolderBrowserView: View {
 
     private var emptyView: some View {
         VStack(spacing: 16) {
-            Image(systemName: "folder")
+            Image(systemName: hasNonVideoFiles ? "film.slash" : "folder")
                 .font(.largeTitle)
                 .foregroundStyle(.secondary)
 
-            Text("Empty Folder")
+            Text(hasNonVideoFiles ? "No Video Files" : "Empty Folder")
                 .font(.headline)
 
-            Text("This folder has no files or subfolders.")
-                .font(.body)
-                .foregroundStyle(.secondary)
+            if hasNonVideoFiles {
+                Text("This folder has no video files.")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+
+                Button("Show All Files") {
+                    viewModel.showAllFiles = true
+                }
+                .buttonStyle(.bordered)
+            } else {
+                Text("This folder has no files or subfolders.")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// Check if folder has non-video files that are hidden by the filter
+    private var hasNonVideoFiles: Bool {
+        !viewModel.showAllFiles && !viewModel.entries.isEmpty
     }
 
     private var listView: some View {
