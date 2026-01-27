@@ -39,9 +39,9 @@ make test              # All tests
 swift test --filter LuegeCoreTests
 
 # Integration tests with Docker
-./scripts/start-test-server.sh
+./Tools/scripts/start-test-server.sh
 LUEGE_TEST_SMB_SERVER=localhost swift test --filter LuegeIntegrationTests
-./scripts/stop-test-server.sh
+./Tools/scripts/stop-test-server.sh
 
 # All tests
 swift test
@@ -77,7 +77,7 @@ git commit --no-verify -m "message"  # Skips pre-commit hook
 The Xcode project is generated using XcodeGen. After adding new source files:
 
 ```bash
-cd Luege && xcodegen generate
+cd App && xcodegen generate
 ```
 
 The `project.yml` defines targets for iOS, tvOS, and screenshot tests. Source files in `Shared/` are automatically included in both platform targets.
@@ -87,9 +87,9 @@ The `project.yml` defines targets for iOS, tvOS, and screenshot tests. Source fi
 The project includes a Docker-based Samba server for integration testing:
 
 ```bash
-./scripts/start-test-server.sh   # Start SMB server (localhost:445)
-./scripts/stop-test-server.sh    # Stop SMB server
-./scripts/run-integration-tests.sh  # Start + run tests
+./Tools/scripts/start-test-server.sh   # Start SMB server (localhost:445)
+./Tools/scripts/stop-test-server.sh    # Stop SMB server
+./Tools/scripts/run-integration-tests.sh  # Start + run tests
 ```
 
 Test shares: `TestShare`, `Movies`, `Music` (guest:guest credentials)
@@ -126,7 +126,7 @@ Sources/LuegeCore/
     ├── FileShareStorage.swift      # JSON metadata storage
     └── SavedShareStorageService.swift  # Combined persistence
 
-Luege/Shared/
+App/Shared/
 ├── Views/               # SwiftUI views
 │   ├── FolderBrowserView.swift     # Directory browsing view
 │   ├── FileEntryRow.swift          # File/folder row component
@@ -163,21 +163,21 @@ The project includes snapshot tests for visual regression testing of UI componen
 **Running screenshot tests:**
 ```bash
 # iOS tests
-xcodebuild test -project Luege/Luege.xcodeproj -scheme "LuegeScreenshotTests iOS" -destination "platform=iOS Simulator,name=iPhone 17"
+xcodebuild test -project App/Luege.xcodeproj -scheme "LuegeScreenshotTests iOS" -destination "platform=iOS Simulator,name=iPhone 17"
 
 # tvOS tests
-xcodebuild test -project Luege/Luege.xcodeproj -scheme "LuegeScreenshotTests tvOS" -destination "platform=tvOS Simulator,name=Apple TV"
+xcodebuild test -project App/Luege.xcodeproj -scheme "LuegeScreenshotTests tvOS" -destination "platform=tvOS Simulator,name=Apple TV"
 ```
 
 **Recording new snapshots:**
-1. Set `isRecording = true` in `LuegeScreenshotTests/Shared/SnapshotTestCase.swift`
+1. Set `isRecording = true` in `App/LuegeScreenshotTests/Shared/SnapshotTestCase.swift`
 2. Run the tests for both platforms
 3. Set `isRecording = false`
 4. Run tests again to verify they pass
 
 **After building or adjusting UI:**
 1. Always run screenshot tests for both iOS and tvOS
-2. Review the generated snapshots in `Luege/LuegeScreenshotTests/__Snapshots__/`
+2. Review the generated snapshots in `App/LuegeScreenshotTests/__Snapshots__/`
 3. Verify the UI looks correct on both platforms
 4. Check both light mode and dark mode variants
 5. Commit updated snapshots so CI can catch visual regressions

@@ -4,7 +4,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 
 # Start the server
 "$SCRIPT_DIR/start-test-server.sh"
@@ -22,4 +22,4 @@ LUEGE_TEST_SMB_SERVER=localhost swift test --filter LuegeIntegrationTests
 
 echo ""
 echo "Tests complete. Server still running."
-echo "Run ./scripts/stop-test-server.sh when done."
+echo "Run ./Tools/scripts/stop-test-server.sh when done."
