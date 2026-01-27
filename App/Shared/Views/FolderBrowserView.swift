@@ -4,8 +4,14 @@ import LuegeCore
 struct FolderBrowserView: View {
     @StateObject private var viewModel: FolderBrowserViewModel
     @Environment(\.dismiss) private var dismiss
+    @State private var selectedVideo: FileEntry?
+
+    private let share: SavedShare
+    private let discoveryService: NetworkDiscoveryService
 
     init(share: SavedShare, discoveryService: NetworkDiscoveryService) {
+        self.share = share
+        self.discoveryService = discoveryService
         _viewModel = StateObject(wrappedValue: FolderBrowserViewModel(
             share: share,
             credentialProvider: { [weak discoveryService] in
@@ -69,6 +75,16 @@ struct FolderBrowserView: View {
             await viewModel.refresh()
         }
         #endif
+        .fullScreenCover(item: $selectedVideo) { video in
+            VideoPlayerView(
+                video: video,
+                share: share,
+                subtitles: viewModel.subtitles(for: video),
+                credentialProvider: { [weak discoveryService] in
+                    try await discoveryService?.credentials(for: share)
+                }
+            )
+        }
     }
 
     @ViewBuilder
@@ -168,9 +184,7 @@ struct FolderBrowserView: View {
                 await viewModel.navigateInto(entry)
             }
         } else if entry.isVideoFile {
-            // Placeholder for E3-001: Video playback
-            // For now, just show that video was tapped
-            print("Video tapped: \(entry.name)")
+            selectedVideo = entry
         }
     }
 }

@@ -58,7 +58,7 @@ make install-hooks
 
 **What it does:**
 - Always runs unit tests before allowing a commit
-- If Docker is running with the test server (`luege-test-smb` container), also runs integration tests
+- Also runs integration tests with the test server (`luege-test-smb` container)
 - Blocks the commit if any tests fail
 
 **Workflow:**
@@ -129,6 +129,12 @@ Sources/LuegeCore/
 │   ├── ShareCredentials.swift      # Authentication credentials
 │   ├── ManualShareInput.swift      # Manual share input model
 │   └── FileEntry.swift             # File/folder entry model
+├── Playback/            # Video playback components
+│   ├── PlaybackProtocols.swift     # SMBFileReading protocol
+│   ├── PlaybackState.swift         # Playback state enum
+│   ├── PlaybackError.swift         # Error types
+│   ├── SMBFileReader.swift         # AMSMB2 file reading
+│   └── SMBResourceLoaderDelegate.swift  # AVPlayer bridge
 └── Persistence/         # Persistent storage components
     ├── PersistenceProtocols.swift  # Storage protocols
     ├── KeychainService.swift       # Secure credential storage
@@ -140,9 +146,14 @@ App/Shared/
 │   ├── FolderBrowserView.swift     # Directory browsing view
 │   ├── FileEntryRow.swift          # File/folder row component
 │   ├── BreadcrumbBar.swift         # Navigation breadcrumb
+│   ├── VideoPlayerView.swift       # Full-screen video player
+│   ├── VideoPlayerLayer.swift      # AVPlayerLayer UIKit wrapper
+│   ├── VideoControlsOverlay.swift  # Transport controls UI
+│   ├── VideoErrorView.swift        # Error state UI
 │   └── ...
 └── ViewModels/          # View models
     ├── FolderBrowserViewModel.swift  # Browsing state management
+    ├── VideoPlayerViewModel.swift    # Playback state management
     └── ...
 
 Tests/
@@ -247,7 +258,8 @@ Types: `Implement`, `Add`, `Fix`, `Update`, `Refactor`
 - ✅ E1-002: Manually add a share
 - ✅ E1-003: Save and manage connections
 - ✅ E2-001: Browse folder structure
+- ✅ E2-002: Filter to video files
+- ✅ E3-001: Play video files
 
 ### Next Stories
-- E2-002: Filter to video files
-- E3-001: Play video files
+- E3-002: Support common video formats

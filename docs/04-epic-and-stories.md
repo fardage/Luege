@@ -188,16 +188,31 @@
 
 ## E3: Video Playback
 
-### E3-001: Play video files
-**As a** user who selected a video,  
-**I want** playback to start immediately,  
+### E3-001: Play video files ✅
+**As a** user who selected a video,
+**I want** playback to start immediately,
 **So that** I can watch my content without delay.
 
 **Acceptance Criteria:**
-- [ ] Playback begins within 3 seconds for local network streams
-- [ ] Standard transport controls: play, pause, seek, skip ±10s
-- [ ] Swipe-to-seek gesture support
-- [ ] Press Menu to exit playback and return to browser
+- [x] Playback begins within 3 seconds for local network streams
+- [x] Standard transport controls: play, pause, seek, skip ±10s
+- [x] Swipe-to-seek gesture support
+- [x] Press Menu to exit playback and return to browser
+
+**Implementation Notes:**
+- `SMBFileReading` protocol with `SMBFileReader` implementation for byte-range reads via AMSMB2
+- `SMBResourceLoaderDelegate` bridges SMB file reads to AVPlayer via AVAssetResourceLoader
+- Custom URL scheme `smb-luege://` used for AVAssetResourceLoader interception
+- `VideoPlayerViewModel` manages playback state (idle, loading, ready, playing, paused, buffering, error)
+- `VideoPlayerView` with full-screen presentation via `.fullScreenCover()`
+- `VideoPlayerLayer` wraps AVPlayerLayer for SwiftUI (UIViewRepresentable/NSViewRepresentable)
+- `VideoControlsOverlay` with transport controls, progress bar, time display
+- Platform-specific controls:
+  - tvOS: `onPlayPauseCommand`, `onMoveCommand` (left/right for skip), `onExitCommand` (Menu to dismiss)
+  - iOS: tap to show/hide controls, swipe gestures for skip, drag progress bar for seek
+- Chunked byte-range reads (512KB) for efficient streaming with cancellation support
+- Auto-hide controls after 4 seconds during playback
+- Integrated with `FolderBrowserView` - tap video file to launch player
 
 ---
 
