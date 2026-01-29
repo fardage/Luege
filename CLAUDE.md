@@ -10,6 +10,7 @@ Luege is a tvOS/iOS media player for playing content directly from SMB network s
 - AMSMB2 for SMB2/3 protocol
 - Network.framework for Bonjour/mDNS discovery
 - XcodeGen for Xcode project generation
+- VLCKit (optional) for extended format support
 
 ## Development Workflow
 
@@ -103,6 +104,24 @@ The project includes a Docker-based Samba server for integration testing:
 
 Test shares: `TestShare`, `Movies`, `Music` (guest:guest credentials)
 
+### VLCKit Setup (CocoaPods)
+
+VLCKit enables playback of formats not natively supported by AVPlayer (MKV, AVI, WMV, WebM, DTS, FLAC, etc.). VLCKit is integrated via CocoaPods using the official VideoLAN distribution.
+
+**Initial setup (after cloning):**
+```bash
+cd App && pod install
+```
+
+**After modifying project.yml:**
+```bash
+cd App && xcodegen generate && pod install
+```
+
+**Important:** Always open `Luege.xcworkspace` (not `.xcodeproj`) when using CocoaPods.
+
+**Without VLCKit:** If pods are not installed, the app works with native formats (MP4, M4V, MOV, TS with H.264/H.265). Non-native formats show "VLC player is not available" error.
+
 ## Code Architecture
 
 ### Directory Structure
@@ -134,7 +153,16 @@ Sources/LuegeCore/
 │   ├── PlaybackState.swift         # Playback state enum
 │   ├── PlaybackError.swift         # Error types
 │   ├── SMBFileReader.swift         # AMSMB2 file reading
-│   └── SMBResourceLoaderDelegate.swift  # AVPlayer bridge
+│   ├── SMBResourceLoaderDelegate.swift  # AVPlayer bridge
+│   ├── PlayerFactory.swift         # Engine selection factory
+│   ├── FormatAnalysis/             # Media format detection
+│   │   ├── FormatAnalyzerProtocol.swift
+│   │   ├── FormatAnalyzer.swift
+│   │   └── MediaFormat.swift       # Container/codec enums
+│   └── PlayerEngine/               # Playback engine abstraction
+│       ├── PlayerEngineProtocol.swift
+│       ├── AVPlayerEngine.swift    # Native AVPlayer
+│       └── VLCPlayerEngine.swift   # VLCKit (optional)
 └── Persistence/         # Persistent storage components
     ├── PersistenceProtocols.swift  # Storage protocols
     ├── KeychainService.swift       # Secure credential storage

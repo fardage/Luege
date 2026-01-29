@@ -24,6 +24,7 @@ targets:
     dependencies:
       - package: LuegeCore
         product: LuegeCore
+      # VLCKit is provided via CocoaPods (see Podfile)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.luege.app
@@ -43,6 +44,7 @@ targets:
     dependencies:
       - package: LuegeCore
         product: LuegeCore
+      # VLCKit is provided via CocoaPods (see Podfile)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.luege.app

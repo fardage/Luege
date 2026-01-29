@@ -82,7 +82,7 @@ final class PlaybackStateTests: XCTestCase {
 
     func testUnsupportedFormatErrorDescription() {
         let error = PlaybackError.unsupportedFormat("MKV")
-        XCTAssertEqual(error.errorDescription, "MKV format is not supported. Supported formats: MP4, M4V, MOV")
+        XCTAssertEqual(error.errorDescription, "MKV format is not supported")
     }
 
     func testNetworkErrorDescription() {

@@ -13,13 +13,17 @@ final class VideoPlayerViewModel: ObservableObject {
     @Published private(set) var isControlsVisible = true
     @Published private(set) var loadingProgress: Double = 0
 
-    // MARK: - Player Properties
+    // MARK: - Player Engine
 
-    private(set) var player: AVPlayer?
-    private var playerItem: AVPlayerItem?
-    private var resourceLoaderDelegate: SMBResourceLoaderDelegate?
-    private var timeObserver: Any?
-    private var cancellables = Set<AnyCancellable>()
+    private var engine: (any PlayerEngine)?
+
+    /// The current player engine type being used
+    private(set) var engineType: PlayerEngineType?
+
+    /// Access to AVPlayer for UI rendering (only available when using AVPlayerEngine)
+    var avPlayer: AVPlayer? {
+        (engine as? AVPlayerEngine)?.player
+    }
 
     // MARK: - Configuration
 
@@ -56,6 +60,16 @@ final class VideoPlayerViewModel: ObservableObject {
         video.name
     }
 
+    /// Whether the current engine is AVPlayer-based (for UI layer selection)
+    var isUsingAVPlayer: Bool {
+        engineType == .avPlayer
+    }
+
+    /// Whether the current engine is VLC-based (for UI layer selection)
+    var isUsingVLC: Bool {
+        engineType == .vlc
+    }
+
     // MARK: - Initialization
 
     init(
@@ -73,83 +87,49 @@ final class VideoPlayerViewModel: ObservableObject {
     }
 
     deinit {
-        // Note: cleanup is handled by stop() called from View's onDisappear
-        // We can't call cleanupPlayer() here since deinit is nonisolated
         controlsHideTask?.cancel()
-        if let timeObserver = timeObserver, let player = player {
-            player.removeTimeObserver(timeObserver)
-        }
-        player?.pause()
     }
 
     // MARK: - Playback Control
-
-    /// Formats supported natively by AVPlayer
-    private static let nativelySupportedFormats: Set<String> = ["mp4", "m4v", "mov", "ts"]
 
     func prepare() async {
         guard state == .idle else { return }
 
         state = .loading
 
-        // Check if format is supported
-        let fileExtension = video.fileExtension.lowercased()
-        if !Self.nativelySupportedFormats.contains(fileExtension) {
-            print("[VideoPlayer] Unsupported format: \(fileExtension)")
-            state = .error(.unsupportedFormat(fileExtension.uppercased()))
+        // Determine which engine to use based on format
+        let format = FormatAnalyzer().analyze(file: video)
+        let selectedEngineType = PlayerFactory.engineType(for: format)
+        engineType = selectedEngineType
+
+        print("[VideoPlayerVM] Format: \(format.container.displayName), using engine: \(selectedEngineType)")
+
+        // Check if VLC is required but not available
+        if selectedEngineType == .vlc && !PlayerFactory.isVLCAvailable {
+            print("[VideoPlayerVM] VLC required but not available")
+            state = .error(.vlcNotAvailable)
             return
         }
+
+        // Create the appropriate engine
+        let playerEngine = PlayerFactory.createEngine(ofType: selectedEngineType, fileReader: fileReader)
+        engine = playerEngine
+
+        // Set up callbacks
+        setupEngineCallbacks(playerEngine)
 
         do {
             // Fetch credentials
             let credentials = try await credentialProvider()
-            print("[VideoPlayer] Credentials: \(credentials?.username ?? "nil")")
+            print("[VideoPlayerVM] Credentials: \(credentials?.username ?? "nil")")
 
-            // Connect to SMB share
-            print("[VideoPlayer] Connecting to share: \(share.hostAddress)/\(share.shareName)")
-            try await fileReader.connect(to: share, credentials: credentials)
-            print("[VideoPlayer] Connected successfully")
-
-            // Create resource loader delegate
-            resourceLoaderDelegate = SMBResourceLoaderDelegate(
-                fileReader: fileReader,
-                share: share,
-                credentials: credentials
-            )
-
-            // Create custom URL for AVAssetResourceLoader
-            print("[VideoPlayer] Video path: \(video.path)")
-            guard let customURL = SMBResourceLoader.makeURL(
-                host: share.hostAddress,
-                share: share.shareName,
-                path: video.path
-            ) else {
-                throw PlaybackError.playbackFailed("Failed to create playback URL")
-            }
-            print("[VideoPlayer] Custom URL: \(customURL)")
-
-            // Create AVURLAsset with custom scheme
-            let asset = AVURLAsset(url: customURL)
-
-            // Set resource loader delegate on a dedicated queue
-            let loaderQueue = DispatchQueue(label: "com.luege.resourceloader.delegate")
-            asset.resourceLoader.setDelegate(resourceLoaderDelegate, queue: loaderQueue)
-
-            // Create player item
-            let item = AVPlayerItem(asset: asset)
-            playerItem = item
-
-            // Create player
-            let avPlayer = AVPlayer(playerItem: item)
-            player = avPlayer
-
-            // Set up observers
-            setupPlayerObservers(player: avPlayer, item: item)
+            // Prepare the engine
+            try await playerEngine.prepare(share: share, path: video.path, credentials: credentials)
 
             state = .ready
-            print("[VideoPlayer] State: ready")
+            print("[VideoPlayerVM] State: ready")
         } catch {
-            print("[VideoPlayer] Error: \(error)")
+            print("[VideoPlayerVM] Error: \(error)")
             let playbackError = error as? PlaybackError ?? .playbackFailed(error.localizedDescription)
             state = .error(playbackError)
         }
@@ -157,14 +137,14 @@ final class VideoPlayerViewModel: ObservableObject {
 
     func play() {
         guard state.canPlay else { return }
-        player?.play()
+        engine?.play()
         state = .playing
         scheduleControlsHide()
     }
 
     func pause() {
         guard state.canPause else { return }
-        player?.pause()
+        engine?.pause()
         state = .paused
         showControls()
     }
@@ -178,10 +158,7 @@ final class VideoPlayerViewModel: ObservableObject {
     }
 
     func seek(to time: TimeInterval) async {
-        guard let player = player else { return }
-
-        let cmTime = CMTime(seconds: time, preferredTimescale: 600)
-        await player.seek(to: cmTime, toleranceBefore: .zero, toleranceAfter: .zero)
+        await engine?.seek(to: time)
         currentTime = time
     }
 
@@ -205,8 +182,13 @@ final class VideoPlayerViewModel: ObservableObject {
     }
 
     func stop() {
-        cleanupPlayer()
+        controlsHideTask?.cancel()
+        engine?.stop()
+        engine = nil
+        engineType = nil
         state = .idle
+        currentTime = 0
+        duration = 0
     }
 
     // MARK: - Controls Visibility
@@ -239,147 +221,28 @@ final class VideoPlayerViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Player Observers
+    // MARK: - Engine Callbacks
 
-    private func setupPlayerObservers(player: AVPlayer, item: AVPlayerItem) {
-        // Time observer for playback position
-        let interval = CMTime(seconds: 0.5, preferredTimescale: 600)
-        timeObserver = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
+    private func setupEngineCallbacks(_ engine: any PlayerEngine) {
+        engine.onStateChange = { [weak self] newState in
             guard let self = self else { return }
-            Task { @MainActor in
-                self.currentTime = time.seconds.isNaN ? 0 : time.seconds
+            // Handle buffering state from engine
+            if case .buffering = newState, self.state == .playing {
+                self.state = .buffering
+            } else if case .playing = newState, self.state == .buffering {
+                self.state = .playing
+            } else if case .error(let error) = newState {
+                self.state = .error(error)
             }
         }
 
-        // Duration observer
-        item.publisher(for: \.duration)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] duration in
-                let seconds = duration.seconds
-                self?.duration = seconds.isNaN || seconds.isInfinite ? 0 : seconds
-            }
-            .store(in: &cancellables)
-
-        // Status observer
-        item.publisher(for: \.status)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] status in
-                self?.handlePlayerStatus(status)
-            }
-            .store(in: &cancellables)
-
-        // Buffering observer
-        item.publisher(for: \.isPlaybackBufferEmpty)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] isEmpty in
-                guard let self = self else { return }
-                if isEmpty && self.state == .playing {
-                    self.state = .buffering
-                }
-            }
-            .store(in: &cancellables)
-
-        item.publisher(for: \.isPlaybackLikelyToKeepUp)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] isLikelyToKeepUp in
-                guard let self = self else { return }
-                if isLikelyToKeepUp && self.state == .buffering {
-                    self.state = .playing
-                }
-            }
-            .store(in: &cancellables)
-
-        // Playback finished observer
-        NotificationCenter.default.publisher(for: .AVPlayerItemDidPlayToEndTime, object: item)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.pause()
-                self?.showControls()
-            }
-            .store(in: &cancellables)
-
-        // Error observer
-        item.publisher(for: \.error)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] error in
-                if let error = error {
-                    print("[VideoPlayer] PlayerItem error: \(error)")
-                    print("[VideoPlayer] Error domain: \((error as NSError).domain)")
-                    print("[VideoPlayer] Error code: \((error as NSError).code)")
-                    print("[VideoPlayer] Error userInfo: \((error as NSError).userInfo)")
-                }
-            }
-            .store(in: &cancellables)
-
-        // Failed to play to end observer
-        NotificationCenter.default.publisher(for: .AVPlayerItemFailedToPlayToEndTime, object: item)
-            .receive(on: DispatchQueue.main)
-            .sink { notification in
-                if let error = notification.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? Error {
-                    print("[VideoPlayer] Failed to play to end: \(error)")
-                }
-            }
-            .store(in: &cancellables)
-
-        // New error log notification
-        NotificationCenter.default.publisher(for: .AVPlayerItemNewErrorLogEntry, object: item)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                if let errorLog = self?.playerItem?.errorLog() {
-                    for event in errorLog.events {
-                        print("[VideoPlayer] Error log: \(event.errorComment ?? "no comment"), domain: \(event.errorDomain), code: \(event.errorStatusCode)")
-                    }
-                }
-            }
-            .store(in: &cancellables)
-    }
-
-    private func handlePlayerStatus(_ status: AVPlayerItem.Status) {
-        print("[VideoPlayer] Player status changed: \(status.rawValue)")
-        switch status {
-        case .readyToPlay:
-            print("[VideoPlayer] Status: readyToPlay")
-            if state == .loading {
-                state = .ready
-            }
-        case .failed:
-            let errorMessage = playerItem?.error?.localizedDescription ?? "Unknown error"
-            print("[VideoPlayer] Status: failed - \(errorMessage)")
-            if let error = playerItem?.error {
-                print("[VideoPlayer] Full error: \(error)")
-            }
-            state = .error(.playbackFailed(errorMessage))
-        case .unknown:
-            print("[VideoPlayer] Status: unknown")
-            break
-        @unknown default:
-            break
-        }
-    }
-
-    // MARK: - Cleanup
-
-    private func cleanupPlayer() {
-        controlsHideTask?.cancel()
-
-        if let timeObserver = timeObserver {
-            player?.removeTimeObserver(timeObserver)
-        }
-        timeObserver = nil
-
-        cancellables.removeAll()
-
-        player?.pause()
-        player = nil
-        playerItem = nil
-        resourceLoaderDelegate = nil
-
-        Task {
-            await fileReader.disconnect()
+        engine.onTimeUpdate = { [weak self] time in
+            self?.currentTime = time
         }
 
-        currentTime = 0
-        duration = 0
+        engine.onDurationChange = { [weak self] duration in
+            self?.duration = duration
+        }
     }
 
     // MARK: - Formatting

@@ -20,7 +20,9 @@ let package = Package(
     targets: [
         .target(
             name: "LuegeCore",
-            dependencies: ["AMSMB2"],
+            dependencies: [
+                "AMSMB2"
+            ],
             path: "Sources/LuegeCore"
         ),
         .testTarget(

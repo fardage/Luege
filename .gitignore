@@ -20,5 +20,10 @@ DerivedData/
 # Docker test data
 docker/test-data/
 
+# CocoaPods
+App/Pods/
+App/Podfile.lock
+App/Luege.xcworkspace/
+
 # macOS
 .DS_Store

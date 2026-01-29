@@ -5,6 +5,9 @@
       location = "group:App/Luege.xcodeproj">
    </FileRef>
    <FileRef
+      location = "group:App/Pods/Pods.xcodeproj">
+   </FileRef>
+   <FileRef
       location = "self:">
    </FileRef>
 </Workspace>

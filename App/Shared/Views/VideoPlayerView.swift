@@ -27,7 +27,7 @@ struct VideoPlayerView: View {
             Color.black.ignoresSafeArea()
 
             // Video layer
-            if let player = viewModel.player {
+            if let player = viewModel.avPlayer {
                 VideoPlayerLayer(player: player)
                     .ignoresSafeArea()
             }

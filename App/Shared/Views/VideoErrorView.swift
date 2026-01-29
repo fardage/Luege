@@ -7,32 +7,39 @@ struct VideoErrorView: View {
     let onRetry: () -> Void
     let onDismiss: () -> Void
 
-    private var isUnsupportedFormat: Bool {
-        if case .unsupportedFormat = error {
-            return true
-        }
-        return false
+    private var isUnsupportedMedia: Bool {
+        error.isUnsupportedMedia
     }
 
     private var errorIcon: String {
-        if isUnsupportedFormat {
+        if isUnsupportedMedia {
             return "film.slash"
         }
         return "exclamationmark.triangle.fill"
     }
 
     private var errorTitle: String {
-        if isUnsupportedFormat {
+        switch error {
+        case .unsupportedFormat:
             return "Format Not Supported"
+        case .unsupportedVideoCodec:
+            return "Video Codec Not Supported"
+        case .unsupportedAudioCodec:
+            return "Audio Codec Not Supported"
+        case .vlcNotAvailable:
+            return "Player Not Available"
+        case .vlcError:
+            return "VLC Playback Error"
+        default:
+            return "Playback Error"
         }
-        return "Playback Error"
     }
 
     var body: some View {
         VStack(spacing: 24) {
             Image(systemName: errorIcon)
                 .font(.system(size: 56))
-                .foregroundStyle(isUnsupportedFormat ? Color.secondary : Color.orange)
+                .foregroundStyle(isUnsupportedMedia ? Color.secondary : Color.orange)
 
             Text(errorTitle)
                 .font(.title2)
@@ -47,7 +54,7 @@ struct VideoErrorView: View {
 
             HStack(spacing: 16) {
                 // Only show retry for recoverable errors
-                if !isUnsupportedFormat {
+                if !isUnsupportedMedia {
                     Button {
                         onRetry()
                     } label: {

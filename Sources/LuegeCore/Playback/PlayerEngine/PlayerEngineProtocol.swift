@@ -1,0 +1,52 @@
+import Foundation
+
+/// Protocol defining the interface for video playback engines
+/// Both AVPlayer-based and VLC-based implementations conform to this protocol
+@MainActor
+public protocol PlayerEngine: AnyObject {
+    /// Current playback state
+    var state: PlaybackState { get }
+
+    /// Current playback position in seconds
+    var currentTime: TimeInterval { get }
+
+    /// Total duration of the media in seconds
+    var duration: TimeInterval { get }
+
+    /// Prepare the engine for playback
+    /// - Parameters:
+    ///   - share: The SMB share containing the video
+    ///   - path: Path to the video file within the share
+    ///   - credentials: Optional credentials for authentication
+    func prepare(share: SavedShare, path: String, credentials: ShareCredentials?) async throws
+
+    /// Start or resume playback
+    func play()
+
+    /// Pause playback
+    func pause()
+
+    /// Seek to a specific time
+    /// - Parameter time: Target time in seconds
+    func seek(to time: TimeInterval) async
+
+    /// Stop playback and release resources
+    func stop()
+
+    /// Callback invoked when playback state changes
+    var onStateChange: ((PlaybackState) -> Void)? { get set }
+
+    /// Callback invoked when playback time updates
+    var onTimeUpdate: ((TimeInterval) -> Void)? { get set }
+
+    /// Callback invoked when duration becomes known
+    var onDurationChange: ((TimeInterval) -> Void)? { get set }
+}
+
+/// Identifies which player engine type to use
+public enum PlayerEngineType: Sendable, Equatable {
+    /// Native AVPlayer engine for supported formats
+    case avPlayer
+    /// VLCKit engine for unsupported formats
+    case vlc
+}

@@ -1,0 +1,19 @@
+# Official VLCKit from VideoLAN
+# https://wiki.videolan.org/VLCKit/
+
+platform :ios, '17.0'
+use_frameworks!
+
+# Shared pods for both platforms
+def vlckit_pods
+  pod 'MobileVLCKit', '~> 3.6'
+end
+
+target 'Luege iOS' do
+  vlckit_pods
+end
+
+target 'Luege tvOS' do
+  platform :tvos, '17.0'
+  pod 'TVVLCKit', '~> 3.6'
+end
