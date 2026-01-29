@@ -216,18 +216,27 @@
 
 ---
 
-### E3-002: Support common video formats
-**As a** user with a diverse media collection,  
-**I want** the app to play files regardless of container or codec,  
+### E3-002: Support common video formats ✅
+**As a** user with a diverse media collection,
+**I want** the app to play files regardless of container or codec,
 **So that** I don't need to re-encode my library.
 
 **Acceptance Criteria:**
-- [ ] Containers: MKV, MP4, AVI, MOV, WMV, M4V, TS, WEBM
-- [ ] Video codecs: H.264, H.265/HEVC, VP9 (hardware-supported on Apple TV)
-- [ ] Audio codecs: AAC, AC3, EAC3, DTS (passthrough), TrueHD, FLAC, MP3
-- [ ] Graceful error message for unsupported codecs with codec name shown
+- [x] Containers: MKV, MP4, AVI, MOV, WMV, M4V, TS, WEBM
+- [x] Video codecs: H.264, H.265/HEVC, VP9 (hardware-supported on Apple TV)
+- [x] Audio codecs: AAC, AC3, EAC3, DTS (passthrough), TrueHD, FLAC, MP3
+- [x] Graceful error message for unsupported codecs with codec name shown
 
-**Notes:** Leverage AVFoundation and VLCKit/FFmpeg for broad compatibility.
+**Implementation Notes:**
+- Dual playback engine architecture: AVPlayerEngine for native formats, VLCPlayerEngine for extended formats
+- `FormatAnalyzer` detects container/codec from file extension
+- `PlayerFactory` selects appropriate engine based on format analysis
+- VLCKit integration via official CocoaPods (MobileVLCKit for iOS, TVVLCKit for tvOS)
+- Conditional compilation allows builds without VLC (stub implementation)
+- `PlaybackError` extended with codec-specific error cases
+- `VideoErrorView` shows user-friendly messages for unsupported formats
+
+**Notes:** Uses official VLCKit via CocoaPods for security. AVFoundation handles native formats (MP4, M4V, MOV, TS with H.264/H.265).
 
 ---
 
