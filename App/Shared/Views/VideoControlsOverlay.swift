@@ -44,8 +44,36 @@ struct VideoControlsOverlay: View {
                 .lineLimit(1)
 
             Spacer()
+
+            // Audio track button (only show if multiple tracks)
+            if viewModel.hasMultipleAudioTracks {
+                audioTrackButton
+            }
         }
         .padding()
+    }
+
+    private var audioTrackButton: some View {
+        Button {
+            viewModel.showAudioTrackMenu()
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "speaker.wave.2.fill")
+                    .font(.subheadline)
+
+                Text(viewModel.selectedAudioTrackName)
+                    .font(.subheadline)
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(.ultraThinMaterial, in: Capsule())
+            .foregroundStyle(.white)
+        }
+        .buttonStyle(.plain)
+        #if os(tvOS)
+        .focusable()
+        #endif
     }
 
     // MARK: - Center Controls

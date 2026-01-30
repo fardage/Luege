@@ -13,6 +13,11 @@ final class VideoPlayerViewModel: ObservableObject {
     @Published private(set) var isControlsVisible = true
     @Published private(set) var loadingProgress: Double = 0
 
+    // Audio track selection
+    @Published private(set) var audioTracks: [AudioTrack] = []
+    @Published private(set) var selectedAudioTrackIndex: Int?
+    @Published var isAudioTrackMenuVisible = false
+
     // MARK: - Player Engine
 
     private var engine: (any PlayerEngine)?
@@ -68,6 +73,19 @@ final class VideoPlayerViewModel: ObservableObject {
     /// Whether the current engine is VLC-based (for UI layer selection)
     var isUsingVLC: Bool {
         engineType == .vlc
+    }
+
+    /// Whether multiple audio tracks are available for selection
+    var hasMultipleAudioTracks: Bool {
+        audioTracks.count > 1
+    }
+
+    /// Display name for the currently selected audio track
+    var selectedAudioTrackName: String {
+        guard let index = selectedAudioTrackIndex, index < audioTracks.count else {
+            return "Audio"
+        }
+        return audioTracks[index].displayName
     }
 
     // MARK: - Initialization
@@ -189,6 +207,29 @@ final class VideoPlayerViewModel: ObservableObject {
         state = .idle
         currentTime = 0
         duration = 0
+        audioTracks = []
+        selectedAudioTrackIndex = nil
+        isAudioTrackMenuVisible = false
+    }
+
+    // MARK: - Audio Track Selection
+
+    func selectAudioTrack(at index: Int) {
+        guard index >= 0 && index < audioTracks.count else { return }
+        Task {
+            await engine?.selectAudioTrack(at: index)
+        }
+    }
+
+    func showAudioTrackMenu() {
+        guard hasMultipleAudioTracks else { return }
+        isAudioTrackMenuVisible = true
+        controlsHideTask?.cancel()
+    }
+
+    func hideAudioTrackMenu() {
+        isAudioTrackMenuVisible = false
+        scheduleControlsHide()
     }
 
     // MARK: - Controls Visibility
@@ -242,6 +283,14 @@ final class VideoPlayerViewModel: ObservableObject {
 
         engine.onDurationChange = { [weak self] duration in
             self?.duration = duration
+        }
+
+        engine.onAudioTracksAvailable = { [weak self] tracks in
+            self?.audioTracks = tracks
+        }
+
+        engine.onAudioTrackChanged = { [weak self] index in
+            self?.selectedAudioTrackIndex = index
         }
     }
 

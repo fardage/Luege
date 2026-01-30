@@ -13,6 +13,11 @@ final class MockPlayerEngine: PlayerEngine {
     var onStateChange: ((PlaybackState) -> Void)?
     var onTimeUpdate: ((TimeInterval) -> Void)?
     var onDurationChange: ((TimeInterval) -> Void)?
+    var onAudioTracksAvailable: (([AudioTrack]) -> Void)?
+    var onAudioTrackChanged: ((Int?) -> Void)?
+
+    var audioTracks: [AudioTrack] = []
+    var selectedAudioTrackIndex: Int?
 
     // MARK: - Mock Tracking
 
@@ -26,9 +31,14 @@ final class MockPlayerEngine: PlayerEngine {
     var seekCalled = false
     var seekToTime: TimeInterval?
     var stopCalled = false
+    var selectAudioTrackCalled = false
+    var selectAudioTrackIndex: Int?
 
     var shouldFailPrepare = false
     var prepareError: PlaybackError = .playbackFailed("Mock error")
+
+    // Mock audio tracks to return after prepare
+    var mockAudioTracks: [AudioTrack] = []
 
     // MARK: - PlayerEngine Protocol Methods
 
@@ -53,6 +63,11 @@ final class MockPlayerEngine: PlayerEngine {
         state = .ready
         onStateChange?(state)
         onDurationChange?(duration)
+
+        // Simulate audio tracks becoming available
+        if !mockAudioTracks.isEmpty {
+            simulateAudioTracksAvailable(mockAudioTracks)
+        }
     }
 
     func play() {
@@ -81,7 +96,18 @@ final class MockPlayerEngine: PlayerEngine {
         state = .idle
         currentTime = 0
         duration = 0
+        audioTracks = []
+        selectedAudioTrackIndex = nil
         onStateChange?(state)
+    }
+
+    func selectAudioTrack(at index: Int) async {
+        selectAudioTrackCalled = true
+        selectAudioTrackIndex = index
+
+        guard index >= 0 && index < audioTracks.count else { return }
+        selectedAudioTrackIndex = index
+        onAudioTrackChanged?(index)
     }
 
     // MARK: - Mock Helpers
@@ -101,6 +127,13 @@ final class MockPlayerEngine: PlayerEngine {
         onStateChange?(state)
     }
 
+    func simulateAudioTracksAvailable(_ tracks: [AudioTrack]) {
+        audioTracks = tracks
+        selectedAudioTrackIndex = tracks.isEmpty ? nil : 0
+        onAudioTracksAvailable?(tracks)
+        onAudioTrackChanged?(selectedAudioTrackIndex)
+    }
+
     func reset() {
         state = .idle
         currentTime = 0
@@ -116,7 +149,12 @@ final class MockPlayerEngine: PlayerEngine {
         seekCalled = false
         seekToTime = nil
         stopCalled = false
+        selectAudioTrackCalled = false
+        selectAudioTrackIndex = nil
 
         shouldFailPrepare = false
+        audioTracks = []
+        selectedAudioTrackIndex = nil
+        mockAudioTracks = []
     }
 }

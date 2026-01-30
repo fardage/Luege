@@ -240,16 +240,29 @@
 
 ---
 
-### E3-003: Audio track selection
-**As a** user watching a file with multiple audio tracks,  
-**I want** to switch between audio tracks during playback,  
+### E3-003: Audio track selection ✅
+**As a** user watching a file with multiple audio tracks,
+**I want** to switch between audio tracks during playback,
 **So that** I can choose my preferred language or format.
 
 **Acceptance Criteria:**
-- [ ] Audio tracks listed by language and codec (e.g., "English - AC3 5.1")
-- [ ] Accessible via swipe-down menu during playback
-- [ ] Selection persists for the current file
-- [ ] Default track preference configurable in settings
+- [x] Audio tracks listed by language and codec (e.g., "English - AC3 5.1")
+- [x] Accessible via swipe-down menu during playback (iOS: swipe-down, tvOS: swipe-up or button)
+- [x] Selection persists for the current file
+- [ ] Default track preference configurable in settings (deferred to E7-002)
+
+**Implementation Notes:**
+- `AudioTrack` model with language, codec, channels, and display name generation
+- `PlayerEngineProtocol` extended with audio track enumeration and selection
+- `AVPlayerEngine` uses AVPlayer's media selection groups for track enumeration
+- `VLCPlayerEngine` uses VLCKit's `audioTrackNames` and `audioTrackIndexes` APIs
+- `VideoPlayerViewModel` manages audio track state and selection
+- `AudioTrackSelectionView` provides UI for track selection with checkmarks
+- `VideoControlsOverlay` shows audio button when multiple tracks available
+- Platform-specific triggers:
+  - tvOS: swipe-up when controls visible shows audio menu, Menu button dismisses
+  - iOS: swipe-down gesture shows audio menu, tap to dismiss
+- Audio tracks load after playback begins (VLC) or when ready (AVPlayer)
 
 ---
 

@@ -41,6 +41,24 @@ public protocol PlayerEngine: AnyObject {
 
     /// Callback invoked when duration becomes known
     var onDurationChange: ((TimeInterval) -> Void)? { get set }
+
+    // MARK: - Audio Track Support
+
+    /// Available audio tracks in the current media
+    var audioTracks: [AudioTrack] { get }
+
+    /// Index of the currently selected audio track (nil if none selected)
+    var selectedAudioTrackIndex: Int? { get }
+
+    /// Select an audio track by index
+    /// - Parameter index: The index of the audio track to select
+    func selectAudioTrack(at index: Int) async
+
+    /// Callback invoked when audio tracks become available
+    var onAudioTracksAvailable: (([AudioTrack]) -> Void)? { get set }
+
+    /// Callback invoked when the selected audio track changes
+    var onAudioTrackChanged: ((Int?) -> Void)? { get set }
 }
 
 /// Identifies which player engine type to use

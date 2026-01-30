@@ -289,7 +289,8 @@ Types: `Implement`, `Add`, `Fix`, `Update`, `Refactor`
 - ✅ E2-002: Filter to video files
 - ✅ E3-001: Play video files
 - ✅ E3-002: Support common video formats
+- ✅ E3-003: Audio track selection
 
 ### Next Stories
-- E3-003: Audio track selection
 - E3-004: Subtitle support
+- E7-002: Playback preferences (includes default audio track)

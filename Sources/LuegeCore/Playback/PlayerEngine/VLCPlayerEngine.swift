@@ -18,6 +18,11 @@ public final class VLCPlayerEngine: NSObject, PlayerEngine {
     public var onStateChange: ((PlaybackState) -> Void)?
     public var onTimeUpdate: ((TimeInterval) -> Void)?
     public var onDurationChange: ((TimeInterval) -> Void)?
+    public var onAudioTracksAvailable: (([AudioTrack]) -> Void)?
+    public var onAudioTrackChanged: ((Int?) -> Void)?
+
+    public private(set) var audioTracks: [AudioTrack] = []
+    public private(set) var selectedAudioTrackIndex: Int?
 
     // MARK: - Public Access for UI
 
@@ -28,6 +33,7 @@ public final class VLCPlayerEngine: NSObject, PlayerEngine {
 
     private var media: VLCMedia?
     private var timeUpdateTimer: Timer?
+    private var audioTracksLoaded = false
 
     // MARK: - Initialization
 
@@ -104,6 +110,24 @@ public final class VLCPlayerEngine: NSObject, PlayerEngine {
         updateState(.idle)
     }
 
+    public func selectAudioTrack(at index: Int) async {
+        guard let player = mediaPlayer,
+              index >= 0 && index < audioTracks.count else {
+            return
+        }
+
+        // VLCKit uses its own internal track indexes which may differ from our 0-based index
+        // We need to use the actual VLC track index stored in the AudioTrack
+        let trackIndexes = player.audioTrackIndexes as? [Int32] ?? []
+        guard index < trackIndexes.count else { return }
+
+        let vlcTrackIndex = trackIndexes[index]
+        player.currentAudioTrackIndex = vlcTrackIndex
+        selectedAudioTrackIndex = index
+        onAudioTrackChanged?(index)
+        print("[VLCPlayerEngine] Selected audio track: \(index) (VLC index: \(vlcTrackIndex)) - \(audioTracks[index].displayName)")
+    }
+
     // MARK: - Private Methods
 
     private func updateState(_ newState: PlaybackState) {
@@ -168,6 +192,117 @@ public final class VLCPlayerEngine: NSObject, PlayerEngine {
 
         currentTime = 0
         duration = 0
+        audioTracks = []
+        selectedAudioTrackIndex = nil
+        audioTracksLoaded = false
+    }
+
+    private func loadAudioTracks() {
+        guard let player = mediaPlayer, !audioTracksLoaded else { return }
+
+        // VLCKit provides track names and indexes as parallel arrays
+        guard let trackNames = player.audioTrackNames as? [String],
+              let trackIndexes = player.audioTrackIndexes as? [Int32] else {
+            print("[VLCPlayerEngine] Could not get audio track info")
+            return
+        }
+
+        // Filter out the "Disable" track (usually index -1)
+        var tracks: [AudioTrack] = []
+        for (index, (name, vlcIndex)) in zip(trackNames, trackIndexes).enumerated() {
+            // Skip the "Disable" option (typically has negative index)
+            if vlcIndex < 0 { continue }
+
+            let track = createAudioTrack(from: name, at: tracks.count, vlcIndex: vlcIndex)
+            tracks.append(track)
+        }
+
+        guard !tracks.isEmpty else {
+            print("[VLCPlayerEngine] No audio tracks found")
+            return
+        }
+
+        audioTracks = tracks
+        audioTracksLoaded = true
+
+        // Determine currently selected track
+        let currentVLCIndex = player.currentAudioTrackIndex
+        selectedAudioTrackIndex = trackIndexes.firstIndex(of: currentVLCIndex).map { idx in
+            // Adjust for the disabled track we filtered out
+            let disabledCount = trackIndexes.prefix(idx).filter { $0 < 0 }.count
+            return idx - disabledCount
+        }
+
+        print("[VLCPlayerEngine] Found \(tracks.count) audio tracks")
+        for (index, track) in tracks.enumerated() {
+            let selected = index == selectedAudioTrackIndex ? " (selected)" : ""
+            print("[VLCPlayerEngine]   [\(index)] \(track.displayName)\(selected)")
+        }
+
+        onAudioTracksAvailable?(tracks)
+        onAudioTrackChanged?(selectedAudioTrackIndex)
+    }
+
+    private func createAudioTrack(from name: String, at index: Int, vlcIndex: Int32) -> AudioTrack {
+        // VLC track names are typically in format: "Track N - Language [Codec]" or just "Language"
+        // Parse what we can from the name
+
+        var languageName: String? = nil
+        var languageCode: String? = nil
+        var codec: AudioCodec = .unknown
+        var channels: Int? = nil
+
+        // Try to extract codec from brackets
+        if let bracketRange = name.range(of: "\\[(.+?)\\]", options: .regularExpression) {
+            let codecString = String(name[bracketRange]).dropFirst().dropLast()
+            codec = parseVLCCodec(String(codecString))
+        }
+
+        // Try to extract channel info
+        if name.contains("5.1") { channels = 6 }
+        else if name.contains("7.1") { channels = 8 }
+        else if name.contains("stereo") || name.contains("Stereo") { channels = 2 }
+        else if name.contains("mono") || name.contains("Mono") { channels = 1 }
+
+        // Use the name (cleaned up) as the language name
+        var cleanName = name
+        // Remove codec brackets
+        if let bracketRange = cleanName.range(of: "\\s*\\[.+?\\]", options: .regularExpression) {
+            cleanName.removeSubrange(bracketRange)
+        }
+        // Remove "Track N - " prefix
+        if let prefixRange = cleanName.range(of: "^Track\\s+\\d+\\s*-?\\s*", options: .regularExpression) {
+            cleanName.removeSubrange(prefixRange)
+        }
+        cleanName = cleanName.trimmingCharacters(in: .whitespaces)
+
+        if !cleanName.isEmpty && cleanName.lowercased() != "unknown" {
+            languageName = cleanName
+        }
+
+        return AudioTrack(
+            id: "vlc-audio-\(vlcIndex)",
+            index: index,
+            languageCode: languageCode,
+            languageName: languageName,
+            codec: codec,
+            channels: channels,
+            isDefault: index == 0
+        )
+    }
+
+    private func parseVLCCodec(_ codecString: String) -> AudioCodec {
+        let lowercased = codecString.lowercased()
+        if lowercased.contains("aac") { return .aac }
+        if lowercased.contains("e-ac3") || lowercased.contains("eac3") { return .eac3 }
+        if lowercased.contains("ac3") || lowercased.contains("a52") { return .ac3 }
+        if lowercased.contains("dts") { return .dts }
+        if lowercased.contains("truehd") { return .truehd }
+        if lowercased.contains("flac") { return .flac }
+        if lowercased.contains("mp3") || lowercased.contains("mpga") { return .mp3 }
+        if lowercased.contains("opus") { return .opus }
+        if lowercased.contains("vorbis") { return .vorbis }
+        return .unknown
     }
 }
 
@@ -195,6 +330,8 @@ extension VLCPlayerEngine: VLCMediaPlayerDelegate {
             updateState(.buffering)
         case .playing:
             updateState(.playing)
+            // Load audio tracks once playback starts
+            loadAudioTracks()
         case .paused:
             updateState(.paused)
         case .ended:
@@ -203,8 +340,8 @@ extension VLCPlayerEngine: VLCMediaPlayerDelegate {
             let errorMessage = "VLC playback error"
             updateState(.error(.vlcError(errorMessage)))
         case .esAdded:
-            // Elementary stream added, continue loading
-            break
+            // Elementary stream added - good time to try loading tracks
+            loadAudioTracks()
         @unknown default:
             break
         }
@@ -229,6 +366,11 @@ public final class VLCPlayerEngine: PlayerEngine {
     public var onStateChange: ((PlaybackState) -> Void)?
     public var onTimeUpdate: ((TimeInterval) -> Void)?
     public var onDurationChange: ((TimeInterval) -> Void)?
+    public var onAudioTracksAvailable: (([AudioTrack]) -> Void)?
+    public var onAudioTrackChanged: ((Int?) -> Void)?
+
+    public var audioTracks: [AudioTrack] = []
+    public var selectedAudioTrackIndex: Int?
 
     public init() {}
 
@@ -240,6 +382,7 @@ public final class VLCPlayerEngine: PlayerEngine {
     public func pause() {}
     public func seek(to time: TimeInterval) async {}
     public func stop() {}
+    public func selectAudioTrack(at index: Int) async {}
 }
 
 #endif

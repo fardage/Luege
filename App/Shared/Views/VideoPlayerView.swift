@@ -56,7 +56,7 @@ struct VideoPlayerView: View {
             handleMoveCommand(direction)
         }
         .onExitCommand {
-            dismiss()
+            handleExitCommand()
         }
         #endif
         #if os(iOS)
@@ -123,36 +123,99 @@ struct VideoPlayerView: View {
         }
 
         // Controls overlay
-        if viewModel.isControlsVisible {
+        if viewModel.isControlsVisible && !viewModel.isAudioTrackMenuVisible {
             VideoControlsOverlay(viewModel: viewModel)
                 .transition(.opacity)
                 .animation(.easeInOut(duration: 0.3), value: viewModel.isControlsVisible)
         }
+
+        // Audio track selection menu
+        if viewModel.isAudioTrackMenuVisible {
+            audioTrackMenuOverlay
+        }
+    }
+
+    private var audioTrackMenuOverlay: some View {
+        ZStack {
+            // Dim background
+            Color.black.opacity(0.6)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    viewModel.hideAudioTrackMenu()
+                }
+
+            // Menu positioned at top-right
+            VStack {
+                HStack {
+                    Spacer()
+                    AudioTrackSelectionView(viewModel: viewModel)
+                        .frame(maxWidth: 350, maxHeight: 400)
+                        .padding(.top, 60)
+                        .padding(.trailing, 20)
+                }
+                Spacer()
+            }
+        }
+        .transition(.opacity)
+        .animation(.easeInOut(duration: 0.2), value: viewModel.isAudioTrackMenuVisible)
     }
 
     // MARK: - Gesture Handling
 
     #if os(tvOS)
     private func handleMoveCommand(_ direction: MoveCommandDirection) {
+        // If audio menu is visible, ignore move commands (menu handles its own focus)
+        guard !viewModel.isAudioTrackMenuVisible else { return }
+
         switch direction {
         case .left:
             viewModel.skipBackward()
         case .right:
             viewModel.skipForward()
-        case .up, .down:
+        case .up:
+            // Swipe up shows audio menu (if available) or controls
+            if viewModel.hasMultipleAudioTracks && viewModel.isControlsVisible {
+                viewModel.showAudioTrackMenu()
+            } else {
+                viewModel.showControls()
+            }
+        case .down:
             viewModel.showControls()
         @unknown default:
             break
+        }
+    }
+
+    private func handleExitCommand() {
+        // If audio menu is visible, dismiss it first
+        if viewModel.isAudioTrackMenuVisible {
+            viewModel.hideAudioTrackMenu()
+        } else {
+            dismiss()
         }
     }
     #endif
 
     #if os(iOS)
     private func handleSwipeGesture(_ value: DragGesture.Value) {
-        let horizontalDistance = value.translation.width
-        let verticalDistance = abs(value.translation.height)
+        // Don't handle swipes if audio menu is visible
+        guard !viewModel.isAudioTrackMenuVisible else { return }
 
-        // Only handle horizontal swipes
+        let horizontalDistance = value.translation.width
+        let verticalDistance = value.translation.height
+
+        // Check if vertical swipe (down for audio menu)
+        if abs(verticalDistance) > abs(horizontalDistance) && abs(verticalDistance) > 50 {
+            if verticalDistance > 0 {
+                // Swipe down - show audio menu if available
+                if viewModel.hasMultipleAudioTracks {
+                    viewModel.showAudioTrackMenu()
+                }
+            }
+            return
+        }
+
+        // Handle horizontal swipes for seek
         guard abs(horizontalDistance) > verticalDistance else { return }
 
         if horizontalDistance > 50 {

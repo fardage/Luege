@@ -14,6 +14,11 @@ public final class AVPlayerEngine: PlayerEngine {
     public var onStateChange: ((PlaybackState) -> Void)?
     public var onTimeUpdate: ((TimeInterval) -> Void)?
     public var onDurationChange: ((TimeInterval) -> Void)?
+    public var onAudioTracksAvailable: (([AudioTrack]) -> Void)?
+    public var onAudioTrackChanged: ((Int?) -> Void)?
+
+    public private(set) var audioTracks: [AudioTrack] = []
+    public private(set) var selectedAudioTrackIndex: Int?
 
     // MARK: - Public Access for UI
 
@@ -128,6 +133,30 @@ public final class AVPlayerEngine: PlayerEngine {
         updateState(.idle)
     }
 
+    public func selectAudioTrack(at index: Int) async {
+        guard let playerItem = playerItem,
+              let asset = playerItem.asset as? AVURLAsset,
+              index >= 0 && index < audioTracks.count else {
+            return
+        }
+
+        do {
+            let group = try await asset.loadMediaSelectionGroup(for: .audible)
+            guard let group = group else { return }
+
+            let options = group.options
+            guard index < options.count else { return }
+
+            let option = options[index]
+            playerItem.select(option, in: group)
+            selectedAudioTrackIndex = index
+            onAudioTrackChanged?(index)
+            print("[AVPlayerEngine] Selected audio track: \(index) - \(audioTracks[index].displayName)")
+        } catch {
+            print("[AVPlayerEngine] Failed to select audio track: \(error)")
+        }
+    }
+
     // MARK: - Private Methods
 
     private func updateState(_ newState: PlaybackState) {
@@ -226,6 +255,10 @@ public final class AVPlayerEngine: PlayerEngine {
             if state == .loading {
                 updateState(.ready)
             }
+            // Load audio tracks once ready
+            Task {
+                await loadAudioTracks()
+            }
         case .failed:
             let errorMessage = playerItem?.error?.localizedDescription ?? "Unknown error"
             print("[AVPlayerEngine] Status: failed - \(errorMessage)")
@@ -235,6 +268,93 @@ public final class AVPlayerEngine: PlayerEngine {
         @unknown default:
             break
         }
+    }
+
+    private func loadAudioTracks() async {
+        guard let playerItem = playerItem,
+              let asset = playerItem.asset as? AVURLAsset else {
+            return
+        }
+
+        do {
+            let group = try await asset.loadMediaSelectionGroup(for: .audible)
+            guard let group = group else {
+                print("[AVPlayerEngine] No audio selection group available")
+                return
+            }
+
+            let options = group.options
+            var tracks: [AudioTrack] = []
+            var selectedIndex: Int?
+
+            // Get the currently selected option
+            let currentSelection = playerItem.currentMediaSelection.selectedMediaOption(in: group)
+
+            for (index, option) in options.enumerated() {
+                let track = createAudioTrack(from: option, at: index)
+                tracks.append(track)
+
+                // Check if this is the selected option
+                if let current = currentSelection, option == current {
+                    selectedIndex = index
+                }
+            }
+
+            audioTracks = tracks
+            selectedAudioTrackIndex = selectedIndex ?? (tracks.isEmpty ? nil : 0)
+
+            print("[AVPlayerEngine] Found \(tracks.count) audio tracks")
+            for (index, track) in tracks.enumerated() {
+                let selected = index == selectedAudioTrackIndex ? " (selected)" : ""
+                print("[AVPlayerEngine]   [\(index)] \(track.displayName)\(selected)")
+            }
+
+            onAudioTracksAvailable?(tracks)
+            onAudioTrackChanged?(selectedAudioTrackIndex)
+        } catch {
+            print("[AVPlayerEngine] Failed to load audio tracks: \(error)")
+        }
+    }
+
+    private func createAudioTrack(from option: AVMediaSelectionOption, at index: Int) -> AudioTrack {
+        let locale = option.locale
+        let languageCode = locale?.language.languageCode?.identifier
+        let languageName: String?
+        if let code = languageCode {
+            languageName = locale?.localizedString(forLanguageCode: code)
+        } else {
+            languageName = nil
+        }
+
+        // Try to infer codec from display name
+        let displayName = option.displayName
+        let codec = inferCodecFromDisplayName(displayName)
+
+        // Channel info is not easily available from AVMediaSelectionOption
+        // so we leave it as nil and let the display name speak for itself
+        let channels: Int? = nil
+
+        return AudioTrack(
+            id: "av-audio-\(index)",
+            index: index,
+            languageCode: languageCode,
+            languageName: languageName,
+            codec: codec,
+            channels: channels,
+            isDefault: option.hasMediaCharacteristic(.containsOnlyForcedSubtitles) == false && index == 0
+        )
+    }
+
+    private func inferCodecFromDisplayName(_ name: String) -> AudioCodec {
+        let lowercased = name.lowercased()
+        if lowercased.contains("aac") { return .aac }
+        if lowercased.contains("dolby digital plus") || lowercased.contains("e-ac-3") { return .eac3 }
+        if lowercased.contains("dolby digital") || lowercased.contains("ac-3") { return .ac3 }
+        if lowercased.contains("dts") { return .dts }
+        if lowercased.contains("truehd") { return .truehd }
+        if lowercased.contains("flac") { return .flac }
+        if lowercased.contains("mp3") { return .mp3 }
+        return .unknown
     }
 
     private func cleanup() {
@@ -256,5 +376,7 @@ public final class AVPlayerEngine: PlayerEngine {
 
         currentTime = 0
         duration = 0
+        audioTracks = []
+        selectedAudioTrackIndex = nil
     }
 }
