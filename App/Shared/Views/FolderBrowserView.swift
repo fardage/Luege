@@ -2,8 +2,10 @@ import SwiftUI
 
 struct FolderBrowserView: View {
     @StateObject private var viewModel: FolderBrowserViewModel
+    @EnvironmentObject private var libraryService: LibraryService
     @Environment(\.dismiss) private var dismiss
     @State private var selectedVideo: FileEntry?
+    @State private var folderToAddToLibrary: FileEntry?
 
     private let share: SavedShare
     private let shareManager: ShareManager
@@ -83,6 +85,23 @@ struct FolderBrowserView: View {
                     try await shareManager?.credentials(for: share)
                 }
             )
+        }
+        .sheet(item: $folderToAddToLibrary) { folder in
+            AddToLibrarySheet(
+                folderPath: viewModel.fullPath(for: folder),
+                folderName: folder.name,
+                share: share,
+                libraryService: libraryService,
+                credentialProvider: { [weak shareManager] in
+                    try await shareManager?.credentials(for: share)
+                }
+            )
+        }
+        .onChange(of: libraryService.libraryFolders) { _, folders in
+            viewModel.updateLibraryPaths(from: folders)
+        }
+        .onAppear {
+            viewModel.updateLibraryPaths(from: libraryService.libraryFolders)
         }
     }
 
@@ -167,9 +186,36 @@ struct FolderBrowserView: View {
 
     private var listView: some View {
         List(viewModel.sortedEntries) { entry in
-            FileEntryRow(entry: entry) {
-                handleEntryTap(entry)
+            FileEntryRow(
+                entry: entry,
+                onTap: { handleEntryTap(entry) },
+                isLibraryFolder: viewModel.isInLibrary(entry)
+            )
+            .contextMenu {
+                if entry.isFolder {
+                    if viewModel.isInLibrary(entry) {
+                        Label("In Library", systemImage: "checkmark")
+                    } else {
+                        Button {
+                            folderToAddToLibrary = entry
+                        } label: {
+                            Label("Add to Library", systemImage: "plus.rectangle.on.folder")
+                        }
+                    }
+                }
             }
+            #if os(iOS)
+            .swipeActions(edge: .trailing) {
+                if entry.isFolder && !viewModel.isInLibrary(entry) {
+                    Button {
+                        folderToAddToLibrary = entry
+                    } label: {
+                        Label("Add to Library", systemImage: "plus.rectangle.on.folder")
+                    }
+                    .tint(.green)
+                }
+            }
+            #endif
             #if os(tvOS)
             .focusable()
             #endif

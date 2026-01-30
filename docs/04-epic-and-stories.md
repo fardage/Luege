@@ -295,16 +295,27 @@
 
 ## E4: Library Management
 
-### E4-001: Add folders to library
-**As a** user with organized media folders,  
-**I want** to designate specific folders as "Movies" or "TV Shows,"  
+### E4-001: Add folders to library ✅
+**As a** user with organized media folders,
+**I want** to designate specific folders as "Movies" or "TV Shows,"
 **So that** content is categorized and enriched appropriately.
 
 **Acceptance Criteria:**
-- [ ] User can mark any folder as a library source
-- [ ] Content type selection: Movies, TV Shows, Home Videos, Other
-- [ ] Multiple folders can contribute to the same library
-- [ ] Scan runs automatically on folder addition
+- [x] User can mark any folder as a library source
+- [x] Content type selection: Movies, TV Shows, Home Videos, Other
+- [x] Multiple folders can contribute to the same library
+- [x] Scan runs automatically on folder addition
+
+**Implementation Notes:**
+- `LibraryFolder` model stores folder metadata (shareId, path, contentType, displayName)
+- `LibraryContentType` enum: movies, tvShows, homeVideos, other
+- `LibraryFolderStorage` persists library folders as JSON in Application Support
+- `FolderScanner` recursively counts video files in a folder
+- `LibraryService` (@MainActor) orchestrates adding/removing/scanning library folders
+- `AddToLibrarySheet` provides UI for content type selection
+- Context menu on folders in `FolderBrowserView` with "Add to Library" action
+- `FileEntryRow` shows library badge on folders that are library sources
+- iOS swipe action for quick add to library
 
 ---
 

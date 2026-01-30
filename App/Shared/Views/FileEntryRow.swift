@@ -3,14 +3,27 @@ import SwiftUI
 struct FileEntryRow: View {
     let entry: FileEntry
     let onTap: () -> Void
+    var isLibraryFolder: Bool = false
 
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 12) {
-                Image(systemName: iconName)
-                    .font(.title2)
-                    .foregroundStyle(iconColor)
-                    .frame(width: 32)
+                ZStack(alignment: .bottomTrailing) {
+                    Image(systemName: iconName)
+                        .font(.title2)
+                        .foregroundStyle(iconColor)
+                        .frame(width: 32)
+
+                    if isLibraryFolder {
+                        Image(systemName: "books.vertical.fill")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.white)
+                            .padding(2)
+                            .background(Color.green)
+                            .clipShape(Circle())
+                            .offset(x: 4, y: 4)
+                    }
+                }
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(entry.name)
@@ -95,6 +108,9 @@ struct FileEntryRow: View {
 
         if entry.isFolder {
             label += ", folder"
+            if isLibraryFolder {
+                label += ", in library"
+            }
         } else if entry.isVideoFile {
             label += ", video"
             if let size = entry.formattedSize {

@@ -14,7 +14,10 @@ final class FolderBrowserViewModel: ObservableObject {
     /// Common subtitle subfolder names to scan
     private static let subtitleFolderNames: Set<String> = ["sub", "subs", "subtitles"]
 
-    private let share: SavedShare
+    /// Paths that are library folders (for badge display)
+    @Published private(set) var libraryFolderPaths: Set<String> = []
+
+    let share: SavedShare
     private let browser: any DirectoryBrowsing
     private let credentialProvider: () async throws -> ShareCredentials?
 
@@ -117,6 +120,25 @@ final class FolderBrowserViewModel: ObservableObject {
     func subtitles(for video: FileEntry) -> [FileEntry] {
         guard video.isVideoFile else { return [] }
         return subtitleAssociations[video.baseFileName] ?? []
+    }
+
+    /// Check if a folder entry is in the library
+    func isInLibrary(_ entry: FileEntry) -> Bool {
+        guard entry.isFolder else { return false }
+        return libraryFolderPaths.contains(fullPath(for: entry))
+    }
+
+    /// Get the full path for an entry
+    func fullPath(for entry: FileEntry) -> String {
+        currentPath.isEmpty ? entry.name : "\(currentPath)/\(entry.name)"
+    }
+
+    /// Update library paths from library service
+    func updateLibraryPaths(from folders: [LibraryFolder]) {
+        let paths = folders
+            .filter { $0.shareId == share.id }
+            .map { $0.path }
+        libraryFolderPaths = Set(paths)
     }
 
     init(
