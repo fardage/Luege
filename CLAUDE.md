@@ -290,7 +290,7 @@ Types: `Implement`, `Add`, `Fix`, `Update`, `Refactor`
 - ✅ E3-001: Play video files
 - ✅ E3-002: Support common video formats
 - ✅ E3-003: Audio track selection
+- ✅ E3-004: Subtitle support
 
 ### Next Stories
-- E3-004: Subtitle support
-- E7-002: Playback preferences (includes default audio track)
+- E7-002: Playback preferences (includes default audio track, subtitle styling)

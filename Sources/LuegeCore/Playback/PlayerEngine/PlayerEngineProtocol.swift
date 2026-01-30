@@ -59,6 +59,30 @@ public protocol PlayerEngine: AnyObject {
 
     /// Callback invoked when the selected audio track changes
     var onAudioTrackChanged: ((Int?) -> Void)? { get set }
+
+    // MARK: - Subtitle Track Support
+
+    /// Available subtitle tracks in the current media
+    var subtitleTracks: [SubtitleTrack] { get }
+
+    /// Index of the currently selected subtitle track (nil if subtitles off)
+    var selectedSubtitleTrackIndex: Int? { get }
+
+    /// Select a subtitle track by index, or nil to disable subtitles
+    /// - Parameter index: The index of the subtitle track to select, or nil to turn off subtitles
+    func selectSubtitleTrack(at index: Int?) async
+
+    /// Add an external subtitle file
+    /// - Parameters:
+    ///   - url: URL to the subtitle file (SMB URL)
+    ///   - language: Optional language hint for the subtitle
+    func addExternalSubtitle(url: URL, language: String?) async
+
+    /// Callback invoked when subtitle tracks become available
+    var onSubtitleTracksAvailable: (([SubtitleTrack]) -> Void)? { get set }
+
+    /// Callback invoked when the selected subtitle track changes
+    var onSubtitleTrackChanged: ((Int?) -> Void)? { get set }
 }
 
 /// Identifies which player engine type to use

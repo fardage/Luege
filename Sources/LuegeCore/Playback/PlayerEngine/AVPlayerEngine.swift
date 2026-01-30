@@ -16,9 +16,13 @@ public final class AVPlayerEngine: PlayerEngine {
     public var onDurationChange: ((TimeInterval) -> Void)?
     public var onAudioTracksAvailable: (([AudioTrack]) -> Void)?
     public var onAudioTrackChanged: ((Int?) -> Void)?
+    public var onSubtitleTracksAvailable: (([SubtitleTrack]) -> Void)?
+    public var onSubtitleTrackChanged: ((Int?) -> Void)?
 
     public private(set) var audioTracks: [AudioTrack] = []
     public private(set) var selectedAudioTrackIndex: Int?
+    public private(set) var subtitleTracks: [SubtitleTrack] = []
+    public private(set) var selectedSubtitleTrackIndex: Int?
 
     // MARK: - Public Access for UI
 
@@ -157,6 +161,45 @@ public final class AVPlayerEngine: PlayerEngine {
         }
     }
 
+    public func selectSubtitleTrack(at index: Int?) async {
+        guard let playerItem = playerItem,
+              let asset = playerItem.asset as? AVURLAsset else {
+            return
+        }
+
+        do {
+            let group = try await asset.loadMediaSelectionGroup(for: .legible)
+            guard let group = group else { return }
+
+            if let index = index, index >= 0 && index < subtitleTracks.count {
+                let options = group.options
+                guard index < options.count else { return }
+
+                let option = options[index]
+                playerItem.select(option, in: group)
+                selectedSubtitleTrackIndex = index
+                onSubtitleTrackChanged?(index)
+                print("[AVPlayerEngine] Selected subtitle track: \(index) - \(subtitleTracks[index].displayName)")
+            } else {
+                // Disable subtitles
+                playerItem.select(nil, in: group)
+                selectedSubtitleTrackIndex = nil
+                onSubtitleTrackChanged?(nil)
+                print("[AVPlayerEngine] Subtitles disabled")
+            }
+        } catch {
+            print("[AVPlayerEngine] Failed to select subtitle track: \(error)")
+        }
+    }
+
+    public func addExternalSubtitle(url: URL, language: String?) async {
+        // AVPlayer has limited support for adding external subtitles at runtime
+        // This is a best-effort implementation - VLC handles this better
+        print("[AVPlayerEngine] External subtitle loading not fully supported in AVPlayer: \(url)")
+        // Note: AVPlayer can load subtitles embedded in HLS manifests or through
+        // AVMutableComposition, but runtime addition of external files is limited
+    }
+
     // MARK: - Private Methods
 
     private func updateState(_ newState: PlaybackState) {
@@ -255,9 +298,10 @@ public final class AVPlayerEngine: PlayerEngine {
             if state == .loading {
                 updateState(.ready)
             }
-            // Load audio tracks once ready
+            // Load audio and subtitle tracks once ready
             Task {
                 await loadAudioTracks()
+                await loadSubtitleTracks()
             }
         case .failed:
             let errorMessage = playerItem?.error?.localizedDescription ?? "Unknown error"
@@ -357,6 +401,92 @@ public final class AVPlayerEngine: PlayerEngine {
         return .unknown
     }
 
+    private func loadSubtitleTracks() async {
+        guard let playerItem = playerItem,
+              let asset = playerItem.asset as? AVURLAsset else {
+            return
+        }
+
+        do {
+            let group = try await asset.loadMediaSelectionGroup(for: .legible)
+            guard let group = group else {
+                print("[AVPlayerEngine] No subtitle selection group available")
+                return
+            }
+
+            let options = group.options
+            var tracks: [SubtitleTrack] = []
+            var selectedIndex: Int?
+
+            // Get the currently selected option
+            let currentSelection = playerItem.currentMediaSelection.selectedMediaOption(in: group)
+
+            for (index, option) in options.enumerated() {
+                let track = createSubtitleTrack(from: option, at: index)
+                tracks.append(track)
+
+                // Check if this is the selected option
+                if let current = currentSelection, option == current {
+                    selectedIndex = index
+                }
+            }
+
+            subtitleTracks = tracks
+            selectedSubtitleTrackIndex = selectedIndex
+
+            print("[AVPlayerEngine] Found \(tracks.count) subtitle tracks")
+            for (index, track) in tracks.enumerated() {
+                let selected = index == selectedSubtitleTrackIndex ? " (selected)" : ""
+                print("[AVPlayerEngine]   [\(index)] \(track.displayName)\(selected)")
+            }
+
+            onSubtitleTracksAvailable?(tracks)
+            onSubtitleTrackChanged?(selectedSubtitleTrackIndex)
+        } catch {
+            print("[AVPlayerEngine] Failed to load subtitle tracks: \(error)")
+        }
+    }
+
+    private func createSubtitleTrack(from option: AVMediaSelectionOption, at index: Int) -> SubtitleTrack {
+        let locale = option.locale
+        let languageCode = locale?.language.languageCode?.identifier
+        let languageName: String?
+        if let code = languageCode {
+            languageName = locale?.localizedString(forLanguageCode: code)
+        } else {
+            languageName = nil
+        }
+
+        // Check for forced subtitle characteristic
+        let isForced = option.hasMediaCharacteristic(.containsOnlyForcedSubtitles)
+
+        // Try to infer subtitle format from display name or media type
+        let displayName = option.displayName
+        let format = inferSubtitleFormat(from: displayName)
+
+        return SubtitleTrack(
+            id: "av-subtitle-\(index)",
+            index: index,
+            languageCode: languageCode,
+            languageName: languageName,
+            format: format,
+            isEmbedded: true,
+            isDefault: index == 0 && !isForced,
+            isForced: isForced
+        )
+    }
+
+    private func inferSubtitleFormat(from name: String) -> SubtitleFormat {
+        let lowercased = name.lowercased()
+        if lowercased.contains("srt") { return .srt }
+        if lowercased.contains("ass") || lowercased.contains("ssa") { return .ass }
+        if lowercased.contains("pgs") || lowercased.contains("hdmv") { return .pgs }
+        if lowercased.contains("vobsub") || lowercased.contains("dvd") { return .vobsub }
+        if lowercased.contains("webvtt") || lowercased.contains("vtt") { return .webvtt }
+        if lowercased.contains("cc") || lowercased.contains("closed caption") { return .cc608 }
+        return .unknown
+    }
+
     private func cleanup() {
         if let timeObserver = timeObserver {
             player?.removeTimeObserver(timeObserver)
@@ -378,5 +508,7 @@ public final class AVPlayerEngine: PlayerEngine {
         duration = 0
         audioTracks = []
         selectedAudioTrackIndex = nil
+        subtitleTracks = []
+        selectedSubtitleTrackIndex = nil
     }
 }

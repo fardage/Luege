@@ -266,17 +266,30 @@
 
 ---
 
-### E3-004: Subtitle support
-**As a** user who needs subtitles,  
-**I want** to enable embedded or external subtitle tracks,  
+### E3-004: Subtitle support ✅
+**As a** user who needs subtitles,
+**I want** to enable embedded or external subtitle tracks,
 **So that** I can follow dialogue in any language.
 
 **Acceptance Criteria:**
-- [ ] Detect embedded subtitles (SRT, ASS, PGS in MKV)
-- [ ] Detect external .srt/.ass files with matching filename
-- [ ] Subtitle track selector in playback menu
-- [ ] Basic styling options: size, color, background
-- [ ] Subtitle delay adjustment (+/- sync)
+- [x] Detect embedded subtitles (SRT, ASS, PGS in MKV)
+- [x] Detect external .srt/.ass files with matching filename
+- [x] Subtitle track selector in playback menu
+- [ ] Basic styling options: size, color, background (deferred to E7-002)
+- [ ] Subtitle delay adjustment (+/- sync) (deferred to E7-002)
+
+**Implementation Notes:**
+- `SubtitleTrack` model with language, format, embedded/external flag, forced/default markers
+- `SubtitleFormat` enum covers SRT, ASS, SSA, PGS, VobSub, WebVTT, DVB, CC formats
+- `PlayerEngineProtocol` extended with subtitle track enumeration and selection
+- `AVPlayerEngine` uses AVPlayer's media selection groups (`.legible`) for embedded tracks
+- `VLCPlayerEngine` uses VLCKit's `videoSubTitlesNames/Indexes` and `addPlaybackSlave` for external
+- `VideoPlayerViewModel` manages subtitle state, loads external subtitles via SMB URLs
+- `SubtitleTrackSelectionView` provides UI with "Off" option and track list
+- `VideoControlsOverlay` shows subtitle button when tracks available
+- External subtitle matching uses existing `FolderBrowserViewModel.subtitles(for:)` method
+- Language extraction from filename patterns (e.g., "movie.en.srt" → "en")
+- Subtitles are off by default (user must explicitly enable)
 
 ---
 
