@@ -23,6 +23,11 @@ final class VideoPlayerViewModel: ObservableObject {
     @Published private(set) var selectedSubtitleTrackIndex: Int?
     @Published var isSubtitleMenuVisible = false
 
+    /// External subtitle tracks (from .srt/.ass files in folder)
+    private var externalSubtitleTracks: [SubtitleTrack] = []
+    /// Embedded subtitle tracks (from engine)
+    private var embeddedSubtitleTracks: [SubtitleTrack] = []
+
     // MARK: - Player Engine
 
     private var engine: (any PlayerEngine)?
@@ -179,7 +184,10 @@ final class VideoPlayerViewModel: ObservableObject {
 
         print("[VideoPlayerVM] Loading \(subtitles.count) external subtitle(s)")
 
-        for subtitle in subtitles {
+        // Create SubtitleTrack entries for external subtitles
+        var tracks: [SubtitleTrack] = []
+
+        for (index, subtitle) in subtitles.enumerated() {
             // Build SMB URL for the subtitle file
             guard let url = buildSMBURL(for: subtitle, credentials: credentials) else {
                 print("[VideoPlayerVM] Failed to build URL for subtitle: \(subtitle.name)")
@@ -188,10 +196,41 @@ final class VideoPlayerViewModel: ObservableObject {
 
             // Try to extract language from filename (e.g., "movie.en.srt" -> "en")
             let language = extractLanguageFromFilename(subtitle.name)
+            let languageName = language.flatMap { Locale.current.localizedString(forLanguageCode: $0) }
 
+            // Determine format from file extension
+            let ext = (subtitle.name as NSString).pathExtension.lowercased()
+            let format = SubtitleFormat(fromExtension: ext)
+
+            // Create a track entry for the external subtitle
+            // Use index offset by 1000 to avoid collision with embedded track indices
+            let track = SubtitleTrack(
+                id: "external-\(index)",
+                index: 1000 + index,
+                languageCode: language,
+                languageName: languageName ?? subtitle.baseFileName,
+                format: format,
+                isEmbedded: false,
+                isDefault: false,
+                isForced: false
+            )
+            tracks.append(track)
+
+            // Also notify the engine (for VLC which can load external subtitles)
             await engine?.addExternalSubtitle(url: url, language: language)
             print("[VideoPlayerVM] Added external subtitle: \(subtitle.name)")
         }
+
+        externalSubtitleTracks = tracks
+        updateCombinedSubtitleTracks()
+
+        print("[VideoPlayerVM] Total subtitle tracks: \(subtitleTracks.count) (\(embeddedSubtitleTracks.count) embedded, \(externalSubtitleTracks.count) external)")
+    }
+
+    /// Combines embedded and external subtitle tracks into the published array
+    private func updateCombinedSubtitleTracks() {
+        // Embedded tracks first, then external tracks
+        subtitleTracks = embeddedSubtitleTracks + externalSubtitleTracks
     }
 
     private func buildSMBURL(for file: FileEntry, credentials: ShareCredentials?) -> URL? {
@@ -293,6 +332,8 @@ final class VideoPlayerViewModel: ObservableObject {
         selectedAudioTrackIndex = nil
         isAudioTrackMenuVisible = false
         subtitleTracks = []
+        embeddedSubtitleTracks = []
+        externalSubtitleTracks = []
         selectedSubtitleTrackIndex = nil
         isSubtitleMenuVisible = false
     }
@@ -320,8 +361,45 @@ final class VideoPlayerViewModel: ObservableObject {
     // MARK: - Subtitle Track Selection
 
     func selectSubtitleTrack(at index: Int?) {
-        Task {
-            await engine?.selectSubtitleTrack(at: index)
+        guard let index = index else {
+            // Disable subtitles
+            selectedSubtitleTrackIndex = nil
+            Task {
+                await engine?.selectSubtitleTrack(at: nil)
+            }
+            return
+        }
+
+        // Find the track in our combined list
+        guard let track = subtitleTracks.first(where: { $0.index == index }) else {
+            return
+        }
+
+        selectedSubtitleTrackIndex = index
+
+        if track.isEmbedded {
+            // For embedded tracks, use the engine's selection
+            // Find the position in embedded tracks array
+            if let embeddedIndex = embeddedSubtitleTracks.firstIndex(where: { $0.index == index }) {
+                Task {
+                    await engine?.selectSubtitleTrack(at: embeddedIndex)
+                }
+            }
+        } else {
+            // For external tracks with VLC, the track should already be loaded
+            // VLC adds external subtitles to its track list, so we need to find the right index
+            // For AVPlayer, external subtitles aren't supported natively
+            if isUsingVLC {
+                // VLC external subtitles are appended to the track list
+                // Try selecting by the combined index position
+                let combinedIndex = subtitleTracks.firstIndex(where: { $0.index == index }) ?? 0
+                Task {
+                    await engine?.selectSubtitleTrack(at: combinedIndex)
+                }
+            } else {
+                // AVPlayer doesn't support external SRT - would need custom rendering
+                print("[VideoPlayerVM] External subtitles not supported with AVPlayer")
+            }
         }
     }
 
@@ -398,10 +476,14 @@ final class VideoPlayerViewModel: ObservableObject {
         }
 
         engine.onSubtitleTracksAvailable = { [weak self] tracks in
-            self?.subtitleTracks = tracks
+            guard let self = self else { return }
+            self.embeddedSubtitleTracks = tracks
+            self.updateCombinedSubtitleTracks()
         }
 
         engine.onSubtitleTrackChanged = { [weak self] index in
+            // Only update if selecting an embedded track
+            // External track selection is handled separately
             self?.selectedSubtitleTrackIndex = index
         }
     }

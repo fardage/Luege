@@ -9,6 +9,12 @@ final class FolderBrowserViewModel: ObservableObject {
     @Published private(set) var pathStack: [String] = []
     @Published var showAllFiles = false
 
+    /// Subtitles found in subtitle subfolders (sub, subs, Subs, Subtitles)
+    @Published private(set) var subfolderSubtitles: [FileEntry] = []
+
+    /// Common subtitle subfolder names to scan
+    private static let subtitleFolderNames: Set<String> = ["sub", "subs", "subtitles"]
+
     private let share: SavedShare
     private let browser: any DirectoryBrowsing
     private let credentialProvider: () async throws -> ShareCredentials?
@@ -33,12 +39,15 @@ final class FolderBrowserViewModel: ObservableObject {
     }
 
     /// Subtitle associations mapping video base names to subtitle entries
+    /// Includes subtitles from both the current directory and subtitle subfolders
     var subtitleAssociations: [String: [FileEntry]] {
         var associations: [String: [FileEntry]] = [:]
         let videos = entries.filter { $0.isVideoFile }
-        let subtitles = entries.filter { $0.isSubtitleFile }
 
-        for subtitle in subtitles {
+        // Combine subtitles from current directory and subfolders
+        let allSubtitles = entries.filter { $0.isSubtitleFile } + subfolderSubtitles
+
+        for subtitle in allSubtitles {
             let subtitleBase = subtitle.baseFileName
 
             // Try to find matching video by checking if video base name matches
@@ -182,9 +191,14 @@ final class FolderBrowserViewModel: ObservableObject {
     private func loadCurrentDirectory() async {
         isLoading = true
         error = nil
+        subfolderSubtitles = []
 
         do {
             entries = try await browser.listDirectory(at: currentPath)
+
+            // Scan subtitle subfolders for additional subtitles
+            await loadSubtitleSubfolders()
+
             isLoading = false
         } catch let browsingError as BrowsingError {
             error = browsingError
@@ -193,6 +207,34 @@ final class FolderBrowserViewModel: ObservableObject {
             self.error = .unknown(error.localizedDescription)
             isLoading = false
         }
+    }
+
+    /// Scan common subtitle subfolders (sub, subs, Subtitles) for subtitle files
+    private func loadSubtitleSubfolders() async {
+        // Find subtitle folders in current directory
+        let subtitleFolders = entries.filter { entry in
+            entry.isFolder && Self.subtitleFolderNames.contains(entry.name.lowercased())
+        }
+
+        guard !subtitleFolders.isEmpty else { return }
+
+        var foundSubtitles: [FileEntry] = []
+
+        for folder in subtitleFolders {
+            let folderPath = currentPath.isEmpty ? folder.name : "\(currentPath)/\(folder.name)"
+
+            do {
+                let folderContents = try await browser.listDirectory(at: folderPath)
+                let subtitles = folderContents.filter { $0.isSubtitleFile }
+                foundSubtitles.append(contentsOf: subtitles)
+                print("[FolderBrowserVM] Found \(subtitles.count) subtitles in \(folder.name)/")
+            } catch {
+                // Silently ignore errors when scanning subtitle folders
+                print("[FolderBrowserVM] Could not scan subtitle folder \(folder.name): \(error)")
+            }
+        }
+
+        subfolderSubtitles = foundSubtitles
     }
 }
 
