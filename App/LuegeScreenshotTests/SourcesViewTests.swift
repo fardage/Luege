@@ -5,7 +5,7 @@ import SnapshotTesting
 
 /// Tests for SourcesView states
 /// Note: These tests use wrapper views to simulate different states
-/// since the actual SourcesView requires a full NetworkDiscoveryService environment object.
+/// since the actual SourcesView requires a full ShareManager environment object.
 final class SourcesViewTests: SnapshotTestCase {
 
     // MARK: - Empty State
@@ -18,11 +18,6 @@ final class SourcesViewTests: SnapshotTestCase {
                     ToolbarItem(placement: .primaryAction) {
                         Button {} label: {
                             Label("Add", systemImage: "plus")
-                        }
-                    }
-                    ToolbarItem(placement: .automatic) {
-                        Button {} label: {
-                            Label("Rescan", systemImage: "arrow.clockwise")
                         }
                     }
                 }
@@ -60,145 +55,6 @@ final class SourcesViewTests: SnapshotTestCase {
                         Label("Add", systemImage: "plus")
                     }
                 }
-                ToolbarItem(placement: .automatic) {
-                    Button {} label: {
-                        Label("Rescan", systemImage: "arrow.clockwise")
-                    }
-                }
-            }
-        }
-
-        #if os(iOS)
-        assertiPhoneSnapshot(of: view)
-        #else
-        assertTVSnapshot(of: view)
-        #endif
-    }
-
-    // MARK: - Discovered Shares Only
-
-    func testDiscoveredSharesOnly() {
-        let view = NavigationStack {
-            List {
-                Section("Discovered") {
-                    DiscoveredShareRow(
-                        share: TestFixtures.discoveredShareWithComment,
-                        onSave: {}
-                    )
-                    DiscoveredShareRow(
-                        share: TestFixtures.discoveredShareWithoutComment,
-                        onSave: {}
-                    )
-                }
-            }
-            .navigationTitle("Sources")
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {} label: {
-                        Label("Add", systemImage: "plus")
-                    }
-                }
-                ToolbarItem(placement: .automatic) {
-                    Button {} label: {
-                        Label("Rescan", systemImage: "arrow.clockwise")
-                    }
-                }
-            }
-        }
-
-        #if os(iOS)
-        assertiPhoneSnapshot(of: view)
-        #else
-        assertTVSnapshot(of: view)
-        #endif
-    }
-
-    // MARK: - Both Sections
-
-    func testBothSections() {
-        let view = NavigationStack {
-            List {
-                Section("Saved") {
-                    SavedShareRow(
-                        share: TestFixtures.savedShareOnline,
-                        status: .online,
-                        onDelete: {}
-                    )
-                    SavedShareRow(
-                        share: TestFixtures.savedShareOffline,
-                        status: .offline(reason: "Host unreachable"),
-                        onDelete: {}
-                    )
-                }
-
-                Section("Discovered") {
-                    DiscoveredShareRow(
-                        share: TestFixtures.discoveredShareWithComment,
-                        onSave: {}
-                    )
-                    DiscoveredShareRow(
-                        share: TestFixtures.discoveredShareWithoutComment,
-                        onSave: {}
-                    )
-                }
-            }
-            .navigationTitle("Sources")
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {} label: {
-                        Label("Add", systemImage: "plus")
-                    }
-                }
-                ToolbarItem(placement: .automatic) {
-                    Button {} label: {
-                        Label("Rescan", systemImage: "arrow.clockwise")
-                    }
-                }
-            }
-        }
-
-        #if os(iOS)
-        assertiPhoneSnapshot(of: view)
-        #else
-        assertTVSnapshot(of: view)
-        #endif
-    }
-
-    // MARK: - Scanning State
-
-    func testScanningState() {
-        let view = NavigationStack {
-            List {
-                Section("Saved") {
-                    SavedShareRow(
-                        share: TestFixtures.savedShareOnline,
-                        status: .online,
-                        onDelete: {}
-                    )
-                }
-
-                Section {
-                    HStack {
-                        // Static indicator for snapshot (ProgressView animates)
-                        Image(systemName: "arrow.triangle.2.circlepath")
-                            .foregroundStyle(.secondary)
-                        Text("Scanning network...")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-            .navigationTitle("Sources")
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {} label: {
-                        Label("Add", systemImage: "plus")
-                    }
-                }
-                ToolbarItem(placement: .automatic) {
-                    // Static indicator for snapshot (ProgressView animates)
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .foregroundStyle(.secondary)
-                }
             }
         }
 
@@ -223,26 +79,12 @@ final class SourcesViewTests: SnapshotTestCase {
                         )
                     }
                 }
-
-                Section("Discovered") {
-                    ForEach(TestFixtures.discoveredSharesMultiple) { share in
-                        DiscoveredShareRow(
-                            share: share,
-                            onSave: {}
-                        )
-                    }
-                }
             }
             .navigationTitle("Sources")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {} label: {
                         Label("Add", systemImage: "plus")
-                    }
-                }
-                ToolbarItem(placement: .automatic) {
-                    Button {} label: {
-                        Label("Rescan", systemImage: "arrow.clockwise")
                     }
                 }
             }
@@ -257,7 +99,7 @@ final class SourcesViewTests: SnapshotTestCase {
 
     // MARK: - iPad
 
-    func testBothSectionsiPad() {
+    func testSavedSharesiPad() {
         #if os(iOS)
         let view = NavigationStack {
             List {
@@ -273,28 +115,12 @@ final class SourcesViewTests: SnapshotTestCase {
                         onDelete: {}
                     )
                 }
-
-                Section("Discovered") {
-                    DiscoveredShareRow(
-                        share: TestFixtures.discoveredShareWithComment,
-                        onSave: {}
-                    )
-                    DiscoveredShareRow(
-                        share: TestFixtures.discoveredShareWithoutComment,
-                        onSave: {}
-                    )
-                }
             }
             .navigationTitle("Sources")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {} label: {
                         Label("Add", systemImage: "plus")
-                    }
-                }
-                ToolbarItem(placement: .automatic) {
-                    Button {} label: {
-                        Label("Rescan", systemImage: "arrow.clockwise")
                     }
                 }
             }
@@ -306,7 +132,7 @@ final class SourcesViewTests: SnapshotTestCase {
 
     // MARK: - Dark Mode
 
-    func testBothSectionsDarkMode() {
+    func testSavedSharesDarkMode() {
         let view = NavigationStack {
             List {
                 Section("Saved") {
@@ -321,24 +147,12 @@ final class SourcesViewTests: SnapshotTestCase {
                         onDelete: {}
                     )
                 }
-
-                Section("Discovered") {
-                    DiscoveredShareRow(
-                        share: TestFixtures.discoveredShareWithComment,
-                        onSave: {}
-                    )
-                }
             }
             .navigationTitle("Sources")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {} label: {
                         Label("Add", systemImage: "plus")
-                    }
-                }
-                ToolbarItem(placement: .automatic) {
-                    Button {} label: {
-                        Label("Rescan", systemImage: "arrow.clockwise")
                     }
                 }
             }

@@ -5,7 +5,7 @@ import SnapshotTesting
 
 /// Tests for AddShareView form states
 /// Note: These tests use wrapper views to simulate different form states
-/// since the actual AddShareView requires a full NetworkDiscoveryService.
+/// since the actual AddShareView requires a full ShareManager.
 final class AddShareViewTests: SnapshotTestCase {
 
     // MARK: - Form Section Tests

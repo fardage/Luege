@@ -6,15 +6,15 @@ struct FolderBrowserView: View {
     @State private var selectedVideo: FileEntry?
 
     private let share: SavedShare
-    private let discoveryService: NetworkDiscoveryService
+    private let shareManager: ShareManager
 
-    init(share: SavedShare, discoveryService: NetworkDiscoveryService) {
+    init(share: SavedShare, shareManager: ShareManager) {
         self.share = share
-        self.discoveryService = discoveryService
+        self.shareManager = shareManager
         _viewModel = StateObject(wrappedValue: FolderBrowserViewModel(
             share: share,
-            credentialProvider: { [weak discoveryService] in
-                try await discoveryService?.credentials(for: share)
+            credentialProvider: { [weak shareManager] in
+                try await shareManager?.credentials(for: share)
             }
         ))
     }
@@ -79,8 +79,8 @@ struct FolderBrowserView: View {
                 video: video,
                 share: share,
                 subtitles: viewModel.subtitles(for: video),
-                credentialProvider: { [weak discoveryService] in
-                    try await discoveryService?.credentials(for: share)
+                credentialProvider: { [weak shareManager] in
+                    try await shareManager?.credentials(for: share)
                 }
             )
         }

@@ -44,11 +44,5 @@
         <string>UIInterfaceOrientationLandscapeLeft</string>
         <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
-    <key>NSLocalNetworkUsageDescription</key>
-    <string>Luege discovers SMB network shares on your local network to play media files.</string>
-    <key>NSBonjourServices</key>
-    <array>
-        <string>_smb._tcp</string>
-    </array>
 </dict>
 </plist>

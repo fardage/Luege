@@ -2,12 +2,12 @@ import SwiftUI
 
 @main
 struct LuegeApp: App {
-    @StateObject private var discoveryService = NetworkDiscoveryService()
+    @StateObject private var shareManager = ShareManager()
 
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environmentObject(discoveryService)
+                .environmentObject(shareManager)
         }
     }
 }

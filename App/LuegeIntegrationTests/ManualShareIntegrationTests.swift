@@ -133,7 +133,7 @@ final class ManualShareIntegrationTests: XCTestCase {
         }
     }
 
-    // MARK: - NetworkDiscoveryService Integration Tests
+    // MARK: - ShareManager Integration Tests
 
     func testAddManualShareIntegration() async throws {
         guard let serverAddress = IntegrationTestConfig.smbTestServer else {
@@ -141,7 +141,7 @@ final class ManualShareIntegrationTests: XCTestCase {
         }
 
         // Given
-        let service = NetworkDiscoveryService(timeout: 2.0)
+        let shareManager = ShareManager()
 
         let input = ManualShareInput(
             protocol: .smb,
@@ -151,43 +151,38 @@ final class ManualShareIntegrationTests: XCTestCase {
         )
 
         // When
-        let share = try await service.addManualShare(input)
+        let share = try await shareManager.addManualShare(input)
 
         // Then
         XCTAssertEqual(share.shareName, "TestShare")
         XCTAssertTrue(share.isManuallyAdded)
-        XCTAssertEqual(service.manualShares.count, 1)
-        XCTAssertEqual(service.allShares.count, 1)
+        XCTAssertEqual(shareManager.manualShares.count, 1)
     }
 
-    func testManualShareWithDiscoveryIntegration() async throws {
+    func testManualShareManagement() async throws {
         guard let serverAddress = IntegrationTestConfig.smbTestServer else {
             throw XCTSkip("No test server configured")
         }
 
         // Given
-        let service = NetworkDiscoveryService(timeout: 2.0)
+        let shareManager = ShareManager()
 
-        // Add a manual share first
+        // Add a manual share
         let manualInput = ManualShareInput(
             protocol: .smb,
             host: serverAddress,
             shareName: "Movies",
             credentials: .guest
         )
-        _ = try await service.addManualShare(manualInput)
+        _ = try await shareManager.addManualShare(manualInput)
 
         // Verify manual share exists
-        XCTAssertEqual(service.manualShares.count, 1)
-
-        // Verify manual share appears in allShares
-        XCTAssertEqual(service.allShares.count, 1)
-        XCTAssertTrue(service.allShares.first!.isManuallyAdded)
+        XCTAssertEqual(shareManager.manualShares.count, 1)
+        XCTAssertTrue(shareManager.manualShares.first!.isManuallyAdded)
 
         // Remove the manual share
-        service.removeManualShare(service.manualShares.first!)
-        XCTAssertEqual(service.manualShares.count, 0)
-        XCTAssertEqual(service.allShares.count, 0)
+        shareManager.removeManualShare(shareManager.manualShares.first!)
+        XCTAssertEqual(shareManager.manualShares.count, 0)
     }
 
     func testMultipleDockerShares() async throws {
@@ -197,7 +192,7 @@ final class ManualShareIntegrationTests: XCTestCase {
         }
 
         // Given
-        let service = NetworkDiscoveryService(timeout: 2.0)
+        let shareManager = ShareManager()
 
         // When - add all expected Docker shares
         for shareName in IntegrationTestConfig.dockerTestShares {
@@ -207,13 +202,13 @@ final class ManualShareIntegrationTests: XCTestCase {
                 shareName: shareName,
                 credentials: .guest
             )
-            _ = try await service.addManualShare(input)
+            _ = try await shareManager.addManualShare(input)
         }
 
         // Then
-        XCTAssertEqual(service.manualShares.count, IntegrationTestConfig.dockerTestShares.count)
+        XCTAssertEqual(shareManager.manualShares.count, IntegrationTestConfig.dockerTestShares.count)
 
-        let addedShareNames = Set(service.manualShares.map { $0.shareName })
+        let addedShareNames = Set(shareManager.manualShares.map { $0.shareName })
         for expectedShare in IntegrationTestConfig.dockerTestShares {
             XCTAssertTrue(addedShareNames.contains(expectedShare), "Missing share: \(expectedShare)")
         }

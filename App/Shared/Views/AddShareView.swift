@@ -4,8 +4,8 @@ struct AddShareView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: AddShareViewModel
 
-    init(discoveryService: NetworkDiscoveryService) {
-        _viewModel = StateObject(wrappedValue: AddShareViewModel(discoveryService: discoveryService))
+    init(shareManager: ShareManager) {
+        _viewModel = StateObject(wrappedValue: AddShareViewModel(shareManager: shareManager))
     }
 
     var body: some View {

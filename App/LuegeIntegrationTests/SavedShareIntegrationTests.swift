@@ -2,7 +2,7 @@ import XCTest
 @testable import Luege
 
 final class SavedShareIntegrationTests: XCTestCase {
-    var service: NetworkDiscoveryService!
+    var service: ShareManager!
     var tempDirectory: URL!
 
     // Docker SMB server host from environment
@@ -29,7 +29,7 @@ final class SavedShareIntegrationTests: XCTestCase {
         )
         let statusService = ConnectionStatusService()
 
-        service = await NetworkDiscoveryService(
+        service = await ShareManager(
             persistenceService: persistenceService,
             statusService: statusService
         )

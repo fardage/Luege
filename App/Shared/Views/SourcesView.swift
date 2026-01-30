@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SourcesView: View {
-    @EnvironmentObject private var discoveryService: NetworkDiscoveryService
+    @EnvironmentObject private var shareManager: ShareManager
 
     @State private var isShowingAddSheet = false
     @State private var isShowingDeleteConfirmation = false
@@ -10,26 +10,17 @@ struct SourcesView: View {
     @State private var isShowingError = false
 
     private var savedShares: [SavedShare] {
-        discoveryService.savedShares
-    }
-
-    private var discoveredShares: [DiscoveredShare] {
-        discoveryService.allShares.filter { discovered in
-            !savedShares.contains { saved in
-                saved.hostAddress == discovered.hostAddress &&
-                saved.shareName == discovered.shareName
-            }
-        }
+        shareManager.savedShares
     }
 
     private var isEmpty: Bool {
-        savedShares.isEmpty && discoveredShares.isEmpty
+        savedShares.isEmpty
     }
 
     var body: some View {
         NavigationStack {
             Group {
-                if isEmpty && !discoveryService.isScanning {
+                if isEmpty {
                     EmptySourcesView {
                         isShowingAddSheet = true
                     }
@@ -46,22 +37,9 @@ struct SourcesView: View {
                         Label("Add", systemImage: "plus")
                     }
                 }
-                ToolbarItem(placement: .automatic) {
-                    if discoveryService.isScanning {
-                        ProgressView()
-                    } else {
-                        Button {
-                            Task {
-                                await discoveryService.rescan()
-                            }
-                        } label: {
-                            Label("Rescan", systemImage: "arrow.clockwise")
-                        }
-                    }
-                }
             }
             .sheet(isPresented: $isShowingAddSheet) {
-                AddShareView(discoveryService: discoveryService)
+                AddShareView(shareManager: shareManager)
             }
             .alert("Error", isPresented: $isShowingError) {
                 Button("OK", role: .cancel) { }
@@ -88,12 +66,10 @@ struct SourcesView: View {
             }
             .task {
                 await loadShares()
-                await discoveryService.startDiscovery()
             }
             #if os(iOS)
             .refreshable {
-                await discoveryService.rescan()
-                await discoveryService.refreshAllStatuses()
+                await shareManager.refreshAllStatuses()
             }
             #endif
         }
@@ -117,37 +93,15 @@ struct SourcesView: View {
                     }
                 }
             }
-
-            if !discoveredShares.isEmpty {
-                Section("Discovered") {
-                    ForEach(discoveredShares) { share in
-                        DiscoveredShareRow(share: share) {
-                            Task {
-                                await saveDiscoveredShare(share)
-                            }
-                        }
-                    }
-                }
-            }
-
-            if discoveryService.isScanning {
-                Section {
-                    HStack {
-                        ProgressView()
-                        Text("Scanning network...")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
         }
         .navigationDestination(for: SavedShare.self) { share in
-            FolderBrowserView(share: share, discoveryService: discoveryService)
+            FolderBrowserView(share: share, shareManager: shareManager)
         }
     }
 
     private func loadShares() async {
         do {
-            try await discoveryService.loadSavedShares()
+            try await shareManager.loadSavedShares()
         } catch {
             showError("Failed to load saved shares: \(error.localizedDescription)")
         }
@@ -161,23 +115,15 @@ struct SourcesView: View {
     private func deleteShare() async {
         guard let share = shareToDelete else { return }
         do {
-            try await discoveryService.deleteSavedShare(share)
+            try await shareManager.deleteSavedShare(share)
             shareToDelete = nil
         } catch {
             showError("Failed to delete share: \(error.localizedDescription)")
         }
     }
 
-    private func saveDiscoveredShare(_ share: DiscoveredShare) async {
-        do {
-            _ = try await discoveryService.saveShare(share, credentials: nil, displayName: nil)
-        } catch {
-            showError("Failed to save share: \(error.localizedDescription)")
-        }
-    }
-
     private func status(for share: SavedShare) -> ConnectionStatus {
-        discoveryService.shareStatuses[share.id] ?? .unknown
+        shareManager.shareStatuses[share.id] ?? .unknown
     }
 
     private func showError(_ message: String) {

@@ -30,7 +30,6 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.luege.app
         INFOPLIST_FILE: tvOS/Info.plist
-        CODE_SIGN_ENTITLEMENTS: tvOS/Luege.entitlements
         PRODUCT_NAME: Luege
         ASSETCATALOG_COMPILER_APPICON_NAME: App Icon & Top Shelf Image
         DEVELOPMENT_TEAM: 7C48W538SL
@@ -50,7 +49,6 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.luege.app
         INFOPLIST_FILE: iOS/Info.plist
-        CODE_SIGN_ENTITLEMENTS: iOS/Luege.entitlements
         PRODUCT_NAME: Luege
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         TARGETED_DEVICE_FAMILY: "1,2"

@@ -33,7 +33,7 @@ final class AddShareViewModel: ObservableObject {
         }
     }
 
-    private let discoveryService: NetworkDiscoveryService
+    private let shareManager: ShareManager
     private var testedShare: DiscoveredShare?
 
     var isFormValid: Bool {
@@ -56,8 +56,8 @@ final class AddShareViewModel: ObservableObject {
         return ShareCredentials(username: trimmedUsername, password: password)
     }
 
-    init(discoveryService: NetworkDiscoveryService) {
-        self.discoveryService = discoveryService
+    init(shareManager: ShareManager) {
+        self.shareManager = shareManager
     }
 
     func testConnection() async {
@@ -75,7 +75,7 @@ final class AddShareViewModel: ObservableObject {
         )
 
         do {
-            let share = try await discoveryService.addManualShare(input)
+            let share = try await shareManager.addManualShare(input)
             testedShare = share
             testResult = .success
         } catch {
@@ -91,7 +91,7 @@ final class AddShareViewModel: ObservableObject {
         isSaving = true
 
         do {
-            _ = try await discoveryService.saveShare(
+            _ = try await shareManager.saveShare(
                 share,
                 credentials: credentials,
                 displayName: displayName.trimmingCharacters(in: .whitespaces).isEmpty ? nil : displayName.trimmingCharacters(in: .whitespaces)
