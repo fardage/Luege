@@ -1,5 +1,4 @@
 import SwiftUI
-import LuegeCore
 
 extension ConnectionStatus {
     /// SF Symbol name for the status

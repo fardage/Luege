@@ -1,5 +1,4 @@
 import SwiftUI
-import LuegeCore
 
 @MainActor
 final class AddShareViewModel: ObservableObject {

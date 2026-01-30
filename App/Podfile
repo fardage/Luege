@@ -11,9 +11,33 @@ end
 
 target 'Luege iOS' do
   vlckit_pods
+
+  target 'LuegeCoreTests iOS' do
+    inherit! :search_paths
+  end
+
+  target 'LuegeIntegrationTests iOS' do
+    inherit! :search_paths
+  end
+
+  target 'LuegeScreenshotTests iOS' do
+    inherit! :search_paths
+  end
 end
 
 target 'Luege tvOS' do
   platform :tvos, '17.0'
   pod 'TVVLCKit', '~> 3.6'
+
+  target 'LuegeCoreTests tvOS' do
+    inherit! :search_paths
+  end
+
+  target 'LuegeIntegrationTests tvOS' do
+    inherit! :search_paths
+  end
+
+  target 'LuegeScreenshotTests tvOS' do
+    inherit! :search_paths
+  end
 end

@@ -1,4 +1,3 @@
-import LuegeCore
 import SwiftUI
 
 /// Overlay controls for video playback

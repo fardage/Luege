@@ -1,5 +1,5 @@
 import Foundation
-import LuegeCore
+@testable import Luege
 
 /// Mock data factories for consistent, deterministic snapshots
 enum TestFixtures {

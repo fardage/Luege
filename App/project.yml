@@ -8,8 +8,9 @@ options:
   createIntermediateGroups: true
 
 packages:
-  LuegeCore:
-    path: ../
+  AMSMB2:
+    url: https://github.com/amosavian/AMSMB2.git
+    from: "4.0.0"
   SnapshotTesting:
     url: https://github.com/pointfreeco/swift-snapshot-testing
     from: "1.15.0"
@@ -22,8 +23,7 @@ targets:
       - path: Shared
       - path: tvOS
     dependencies:
-      - package: LuegeCore
-        product: LuegeCore
+      - package: AMSMB2
       # VLCKit is provided via CocoaPods (see Podfile)
     settings:
       base:
@@ -42,8 +42,7 @@ targets:
       - path: Shared
       - path: iOS
     dependencies:
-      - package: LuegeCore
-        product: LuegeCore
+      - package: AMSMB2
       # VLCKit is provided via CocoaPods (see Podfile)
     settings:
       base:
@@ -62,6 +61,8 @@ targets:
     platform: iOS
     sources:
       - path: LuegeScreenshotTests
+        excludes:
+          - "**/__Snapshots__/**"
     dependencies:
       - target: Luege iOS
       - package: SnapshotTesting
@@ -77,12 +78,70 @@ targets:
     platform: tvOS
     sources:
       - path: LuegeScreenshotTests
+        excludes:
+          - "**/__Snapshots__/**"
     dependencies:
       - target: Luege tvOS
       - package: SnapshotTesting
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.luege.screenshottests
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Luege.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Luege"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        GENERATE_INFOPLIST_FILE: YES
+
+  LuegeCoreTests iOS:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: LuegeCoreTests
+    dependencies:
+      - target: Luege iOS
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.luege.coretests
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Luege.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Luege"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        GENERATE_INFOPLIST_FILE: YES
+
+  LuegeCoreTests tvOS:
+    type: bundle.unit-test
+    platform: tvOS
+    sources:
+      - path: LuegeCoreTests
+    dependencies:
+      - target: Luege tvOS
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.luege.coretests
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Luege.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Luege"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        GENERATE_INFOPLIST_FILE: YES
+
+  LuegeIntegrationTests iOS:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: LuegeIntegrationTests
+    dependencies:
+      - target: Luege iOS
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.luege.integrationtests
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Luege.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Luege"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        GENERATE_INFOPLIST_FILE: YES
+
+  LuegeIntegrationTests tvOS:
+    type: bundle.unit-test
+    platform: tvOS
+    sources:
+      - path: LuegeIntegrationTests
+    dependencies:
+      - target: Luege tvOS
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.luege.integrationtests
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Luege.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Luege"
         BUNDLE_LOADER: "$(TEST_HOST)"
         GENERATE_INFOPLIST_FILE: YES
@@ -127,5 +186,53 @@ schemes:
       gatherCoverageData: false
       targets:
         - name: LuegeScreenshotTests tvOS
+          parallelizable: false
+          randomExecutionOrder: false
+
+  LuegeCoreTests iOS:
+    build:
+      targets:
+        Luege iOS: all
+        LuegeCoreTests iOS: [test]
+    test:
+      gatherCoverageData: false
+      targets:
+        - name: LuegeCoreTests iOS
+          parallelizable: true
+          randomExecutionOrder: true
+
+  LuegeCoreTests tvOS:
+    build:
+      targets:
+        Luege tvOS: all
+        LuegeCoreTests tvOS: [test]
+    test:
+      gatherCoverageData: false
+      targets:
+        - name: LuegeCoreTests tvOS
+          parallelizable: true
+          randomExecutionOrder: true
+
+  LuegeIntegrationTests iOS:
+    build:
+      targets:
+        Luege iOS: all
+        LuegeIntegrationTests iOS: [test]
+    test:
+      gatherCoverageData: false
+      targets:
+        - name: LuegeIntegrationTests iOS
+          parallelizable: false
+          randomExecutionOrder: false
+
+  LuegeIntegrationTests tvOS:
+    build:
+      targets:
+        Luege tvOS: all
+        LuegeIntegrationTests tvOS: [test]
+    test:
+      gatherCoverageData: false
+      targets:
+        - name: LuegeIntegrationTests tvOS
           parallelizable: false
           randomExecutionOrder: false

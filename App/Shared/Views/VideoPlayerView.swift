@@ -1,6 +1,10 @@
-import AVFoundation
-import LuegeCore
 import SwiftUI
+
+#if canImport(MobileVLCKit)
+import MobileVLCKit
+#elseif canImport(TVVLCKit)
+import TVVLCKit
+#endif
 
 /// Full-screen video player view
 struct VideoPlayerView: View {
@@ -26,11 +30,13 @@ struct VideoPlayerView: View {
             // Black background
             Color.black.ignoresSafeArea()
 
-            // Video layer
-            if let player = viewModel.avPlayer {
-                VideoPlayerLayer(player: player)
+            // Video layer (VLC)
+            #if canImport(MobileVLCKit) || canImport(TVVLCKit)
+            if let player = viewModel.vlcMediaPlayer {
+                VLCVideoView(mediaPlayer: player)
                     .ignoresSafeArea()
             }
+            #endif
 
             // Content overlay based on state
             contentOverlay

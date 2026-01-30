@@ -1,5 +1,4 @@
 import SwiftUI
-import LuegeCore
 
 struct FolderBrowserView: View {
     @StateObject private var viewModel: FolderBrowserViewModel

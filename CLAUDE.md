@@ -5,12 +5,12 @@
 Luege is a tvOS/iOS media player for playing content directly from SMB network shares. Built with SwiftUI and AMSMB2, targeting Apple TV, iPhone, and iPad.
 
 **Key Technologies:**
-- Swift Package Manager
 - SwiftUI (native-first approach)
 - AMSMB2 for SMB2/3 protocol
 - Network.framework for Bonjour/mDNS discovery
 - XcodeGen for Xcode project generation
 - VLCKit (optional) for extended format support
+- CocoaPods for VLCKit integration
 
 ## Development Workflow
 
@@ -18,9 +18,9 @@ Luege is a tvOS/iOS media player for playing content directly from SMB network s
 
 1. **Read the story** from `docs/04-epic-and-stories.md`
 2. **Plan the implementation** - create protocol-based design for testability
-3. **Implement core logic** in `Sources/LuegeCore/`
-4. **Write unit tests** with mocks in `Tests/LuegeCoreTests/`
-5. **Write integration tests** in `Tests/LuegeIntegrationTests/`
+3. **Implement core logic** in `App/Shared/Core/`
+4. **Write unit tests** with mocks in `App/LuegeCoreTests/`
+5. **Write integration tests** in `App/LuegeIntegrationTests/`
 6. **Verify with Docker test environment** (`make test-integration`)
 7. **Update story status** in docs (mark acceptance criteria as complete)
 8. **Commit** - pre-commit hook runs tests automatically
@@ -37,15 +37,15 @@ make test              # All tests
 **Manual commands:**
 ```bash
 # Unit tests (no network required)
-swift test --filter LuegeCoreTests
+xcodebuild test -workspace Luege.xcworkspace -scheme "LuegeCoreTests iOS" -destination "platform=iOS Simulator,name=iPhone 17"
 
 # Integration tests with Docker
 ./Tools/scripts/start-test-server.sh
-LUEGE_TEST_SMB_SERVER=localhost swift test --filter LuegeIntegrationTests
+LUEGE_TEST_SMB_SERVER=localhost xcodebuild test -workspace Luege.xcworkspace -scheme "LuegeIntegrationTests iOS" -destination "platform=iOS Simulator,name=iPhone 17"
 ./Tools/scripts/stop-test-server.sh
 
-# All tests
-swift test
+# Screenshot tests
+xcodebuild test -workspace Luege.xcworkspace -scheme "LuegeScreenshotTests iOS" -destination "platform=iOS Simulator,name=iPhone 17"
 ```
 
 ### Pre-commit Hooks
@@ -80,7 +80,7 @@ git commit --no-verify -m "message"  # Skips pre-commit hook
 open Luege.xcworkspace
 ```
 
-Always use the workspace (not `App/Luege.xcodeproj` directly) as it provides unified access to both the app project and the LuegeCore Swift package in a single window.
+Always use the workspace (not `App/Luege.xcodeproj` directly) as it properly includes CocoaPods dependencies.
 
 ### XcodeGen
 
@@ -90,7 +90,7 @@ The Xcode project is generated using XcodeGen. After adding new source files:
 cd App && xcodegen generate
 ```
 
-The `project.yml` defines targets for iOS, tvOS, and screenshot tests. Source files in `Shared/` are automatically included in both platform targets. The workspace uses relative paths, so regenerating the Xcode project won't break the workspace.
+The `project.yml` defines targets for iOS, tvOS, unit tests, integration tests, and screenshot tests. Source files in `Shared/` are automatically included in both platform targets. The workspace uses relative paths, so regenerating the Xcode project won't break the workspace.
 
 ### Docker Test Environment
 
@@ -127,67 +127,70 @@ cd App && xcodegen generate && pod install
 ### Directory Structure
 
 ```
-Sources/LuegeCore/
-├── Browsing/            # Directory browsing components
-│   ├── BrowsingProtocols.swift     # DirectoryBrowsing protocol
-│   ├── BrowsingError.swift         # Error types
-│   └── SMBDirectoryBrowser.swift   # AMSMB2 implementation
-├── Discovery/           # Network discovery components
-│   ├── DiscoveryProtocols.swift    # Protocol definitions
-│   ├── BonjourBrowser.swift        # mDNS service discovery
-│   ├── SMBShareEnumerator.swift    # SMB share listing
-│   ├── SMBConnectionTester.swift   # Manual share connection testing
-│   ├── SMBStatusChecker.swift      # Connection status checking
-│   ├── ConnectionStatusProtocols.swift  # Status management protocols
-│   ├── ConnectionStatusService.swift    # Status tracking service
-│   └── NetworkDiscoveryService.swift    # Main orchestrator
-├── Models/
-│   ├── DiscoveredShare.swift       # Share data model
-│   ├── SavedShare.swift            # Persistent share model
-│   ├── ConnectionStatus.swift      # Status enum
-│   ├── ShareCredentials.swift      # Authentication credentials
-│   ├── ManualShareInput.swift      # Manual share input model
-│   └── FileEntry.swift             # File/folder entry model
-├── Playback/            # Video playback components
-│   ├── PlaybackProtocols.swift     # SMBFileReading protocol
-│   ├── PlaybackState.swift         # Playback state enum
-│   ├── PlaybackError.swift         # Error types
-│   ├── SMBFileReader.swift         # AMSMB2 file reading
-│   ├── SMBResourceLoaderDelegate.swift  # AVPlayer bridge
-│   ├── PlayerFactory.swift         # Engine selection factory
-│   ├── FormatAnalysis/             # Media format detection
-│   │   ├── FormatAnalyzerProtocol.swift
-│   │   ├── FormatAnalyzer.swift
-│   │   └── MediaFormat.swift       # Container/codec enums
-│   └── PlayerEngine/               # Playback engine abstraction
-│       ├── PlayerEngineProtocol.swift
-│       ├── AVPlayerEngine.swift    # Native AVPlayer
-│       └── VLCPlayerEngine.swift   # VLCKit (optional)
-└── Persistence/         # Persistent storage components
-    ├── PersistenceProtocols.swift  # Storage protocols
-    ├── KeychainService.swift       # Secure credential storage
-    ├── FileShareStorage.swift      # JSON metadata storage
-    └── SavedShareStorageService.swift  # Combined persistence
-
-App/Shared/
-├── Views/               # SwiftUI views
-│   ├── FolderBrowserView.swift     # Directory browsing view
-│   ├── FileEntryRow.swift          # File/folder row component
-│   ├── BreadcrumbBar.swift         # Navigation breadcrumb
-│   ├── VideoPlayerView.swift       # Full-screen video player
-│   ├── VideoPlayerLayer.swift      # AVPlayerLayer UIKit wrapper
-│   ├── VideoControlsOverlay.swift  # Transport controls UI
-│   ├── VideoErrorView.swift        # Error state UI
-│   └── ...
-└── ViewModels/          # View models
-    ├── FolderBrowserViewModel.swift  # Browsing state management
-    ├── VideoPlayerViewModel.swift    # Playback state management
-    └── ...
-
-Tests/
-├── LuegeCoreTests/      # Unit tests with mocks
-│   └── Mocks/           # Mock implementations
-└── LuegeIntegrationTests/  # Real network tests
+App/
+├── Shared/
+│   ├── Core/                # Core business logic
+│   │   ├── Browsing/        # Directory browsing components
+│   │   │   ├── BrowsingProtocols.swift
+│   │   │   ├── BrowsingError.swift
+│   │   │   └── SMBDirectoryBrowser.swift
+│   │   ├── Discovery/       # Network discovery components
+│   │   │   ├── DiscoveryProtocols.swift
+│   │   │   ├── BonjourBrowser.swift
+│   │   │   ├── SMBShareEnumerator.swift
+│   │   │   ├── SMBConnectionTester.swift
+│   │   │   ├── SMBStatusChecker.swift
+│   │   │   ├── ConnectionStatusProtocols.swift
+│   │   │   ├── ConnectionStatusService.swift
+│   │   │   └── NetworkDiscoveryService.swift
+│   │   ├── Models/
+│   │   │   ├── DiscoveredShare.swift
+│   │   │   ├── SavedShare.swift
+│   │   │   ├── ConnectionStatus.swift
+│   │   │   ├── ShareCredentials.swift
+│   │   │   ├── ManualShareInput.swift
+│   │   │   ├── FileEntry.swift
+│   │   │   ├── AudioTrack.swift
+│   │   │   └── SubtitleTrack.swift
+│   │   ├── Persistence/     # Persistent storage components
+│   │   │   ├── PersistenceProtocols.swift
+│   │   │   ├── KeychainService.swift
+│   │   │   ├── FileShareStorage.swift
+│   │   │   └── SavedShareStorageService.swift
+│   │   └── Playback/        # Video playback components
+│   │       ├── PlaybackState.swift
+│   │       ├── PlaybackError.swift
+│   │       ├── FormatAnalysis/
+│   │       │   ├── FormatAnalyzerProtocol.swift
+│   │       │   ├── FormatAnalyzer.swift
+│   │       │   └── MediaFormat.swift
+│   │       └── PlayerEngine/
+│   │           └── PlayerEngineProtocol.swift
+│   ├── PlayerEngine/        # App-layer player implementations
+│   │   ├── PlayerFactory.swift
+│   │   └── VLCPlayerEngine.swift
+│   ├── Views/               # SwiftUI views
+│   │   ├── FolderBrowserView.swift
+│   │   ├── FileEntryRow.swift
+│   │   ├── BreadcrumbBar.swift
+│   │   ├── VideoPlayerView.swift
+│   │   ├── VideoControlsOverlay.swift
+│   │   ├── VideoErrorView.swift
+│   │   └── ...
+│   ├── ViewModels/          # View models
+│   │   ├── FolderBrowserViewModel.swift
+│   │   ├── VideoPlayerViewModel.swift
+│   │   └── ...
+│   └── Extensions/
+├── LuegeCoreTests/          # Unit tests with mocks
+│   ├── Mocks/
+│   └── Playback/
+├── LuegeIntegrationTests/   # Real network tests
+├── LuegeScreenshotTests/    # Visual regression tests
+├── iOS/
+├── tvOS/
+├── project.yml
+└── Podfile
 ```
 
 ### Design Principles

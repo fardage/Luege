@@ -1,5 +1,4 @@
 import SwiftUI
-import LuegeCore
 
 struct SourcesView: View {
     @EnvironmentObject private var discoveryService: NetworkDiscoveryService

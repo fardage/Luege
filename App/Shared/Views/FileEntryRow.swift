@@ -1,5 +1,4 @@
 import SwiftUI
-import LuegeCore
 
 struct FileEntryRow: View {
     let entry: FileEntry

@@ -1,5 +1,4 @@
 import Combine
-import LuegeCore
 import SwiftUI
 
 #if canImport(MobileVLCKit)

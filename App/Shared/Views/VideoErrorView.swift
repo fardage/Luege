@@ -1,4 +1,3 @@
-import LuegeCore
 import SwiftUI
 
 /// Error view displayed when video playback fails

@@ -1,5 +1,4 @@
 import SwiftUI
-import LuegeCore
 
 @main
 struct LuegeApp: App {

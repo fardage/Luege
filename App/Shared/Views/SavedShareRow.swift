@@ -1,5 +1,4 @@
 import SwiftUI
-import LuegeCore
 
 /// Content view for a saved share row (used inside NavigationLink)
 struct SavedShareRowContent: View {

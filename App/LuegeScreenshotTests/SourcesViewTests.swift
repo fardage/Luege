@@ -1,7 +1,6 @@
 import XCTest
 import SwiftUI
 import SnapshotTesting
-import LuegeCore
 @testable import Luege
 
 /// Tests for SourcesView states

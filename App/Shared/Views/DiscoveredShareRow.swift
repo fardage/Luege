@@ -1,5 +1,4 @@
 import SwiftUI
-import LuegeCore
 
 struct DiscoveredShareRow: View {
     let share: DiscoveredShare

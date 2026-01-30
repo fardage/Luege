@@ -1,5 +1,4 @@
 import SwiftUI
-import LuegeCore
 
 struct AddShareView: View {
     @Environment(\.dismiss) private var dismiss

@@ -1,0 +1,137 @@
+import Foundation
+
+/// Represents a subtitle track within a media file
+struct SubtitleTrack: Identifiable, Sendable, Equatable {
+    /// Unique identifier for this track
+    let id: String
+
+    /// Index of this track (used for selection)
+    let index: Int
+
+    /// ISO 639-1/639-2 language code (e.g., "en", "eng")
+    let languageCode: String?
+
+    /// Human-readable language name (e.g., "English")
+    let languageName: String?
+
+    /// Subtitle format
+    let format: SubtitleFormat
+
+    /// Whether this is an embedded subtitle track (vs. external file)
+    let isEmbedded: Bool
+
+    /// Whether this is the default subtitle track
+    let isDefault: Bool
+
+    /// Whether this is a forced subtitle track (e.g., for foreign language parts)
+    let isForced: Bool
+
+    init(
+        id: String,
+        index: Int,
+        languageCode: String? = nil,
+        languageName: String? = nil,
+        format: SubtitleFormat = .unknown,
+        isEmbedded: Bool = true,
+        isDefault: Bool = false,
+        isForced: Bool = false
+    ) {
+        self.id = id
+        self.index = index
+        self.languageCode = languageCode
+        self.languageName = languageName
+        self.format = format
+        self.isEmbedded = isEmbedded
+        self.isDefault = isDefault
+        self.isForced = isForced
+    }
+
+    /// Human-readable display name for the track (e.g., "English - SRT" or "English (Forced)")
+    var displayName: String {
+        var parts: [String] = []
+
+        // Language name or code
+        if let name = languageName, !name.isEmpty {
+            parts.append(name)
+        } else if let code = languageCode, !code.isEmpty {
+            // Try to get localized language name from code
+            let localizedName = Locale.current.localizedString(forLanguageCode: code)
+            parts.append(localizedName ?? code.uppercased())
+        } else if isEmbedded {
+            // Only show "Track N" for embedded tracks
+            parts.append("Track \(index + 1)")
+        }
+        // For external tracks without language info, we'll just show format/external below
+
+        // Add forced indicator
+        if isForced {
+            if !parts.isEmpty {
+                parts[0] += " (Forced)"
+            } else {
+                parts.append("Forced")
+            }
+        }
+
+        // Format info
+        if format != .unknown {
+            parts.append(format.displayName)
+        }
+
+        // External indicator
+        if !isEmbedded {
+            parts.append("External")
+        }
+
+        // Fallback if we have nothing
+        if parts.isEmpty {
+            parts.append("Subtitle")
+        }
+
+        return parts.joined(separator: " - ")
+    }
+}
+
+/// Subtitle format/codec types
+enum SubtitleFormat: String, Sendable, Equatable, CaseIterable {
+    case srt
+    case ass
+    case ssa
+    case sub
+    case pgs
+    case vobsub
+    case webvtt
+    case dvbsub
+    case cc608
+    case cc708
+    case unknown
+
+    /// Human-readable display name
+    var displayName: String {
+        switch self {
+        case .srt: return "SRT"
+        case .ass: return "ASS"
+        case .ssa: return "SSA"
+        case .sub: return "SUB"
+        case .pgs: return "PGS"
+        case .vobsub: return "VobSub"
+        case .webvtt: return "WebVTT"
+        case .dvbsub: return "DVB"
+        case .cc608: return "CC"
+        case .cc708: return "CC"
+        case .unknown: return ""
+        }
+    }
+
+    /// Initialize from file extension
+    init(fromExtension ext: String) {
+        switch ext.lowercased() {
+        case "srt": self = .srt
+        case "ass": self = .ass
+        case "ssa": self = .ssa
+        case "sub": self = .sub
+        case "vtt": self = .webvtt
+        case "idx": self = .vobsub
+        default: self = .unknown
+        }
+    }
+}

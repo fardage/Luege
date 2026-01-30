@@ -1,40 +1,39 @@
+import Foundation
+
 // VLCKit import - MobileVLCKit for iOS, TVVLCKit for tvOS
 #if canImport(MobileVLCKit)
-import Foundation
 import MobileVLCKit
 #elseif canImport(TVVLCKit)
-import Foundation
 import TVVLCKit
 #endif
 
-import LuegeCore
 
 /// VLCKit-based playback engine for formats not supported by AVPlayer
 @MainActor
-public final class VLCPlayerEngine: NSObject, PlayerEngine {
+final class VLCPlayerEngine: NSObject, PlayerEngine {
     // MARK: - PlayerEngine Protocol Properties
 
-    public private(set) var state: PlaybackState = .idle
-    public private(set) var currentTime: TimeInterval = 0
-    public private(set) var duration: TimeInterval = 0
+    private(set) var state: PlaybackState = .idle
+    private(set) var currentTime: TimeInterval = 0
+    private(set) var duration: TimeInterval = 0
 
-    public var onStateChange: ((PlaybackState) -> Void)?
-    public var onTimeUpdate: ((TimeInterval) -> Void)?
-    public var onDurationChange: ((TimeInterval) -> Void)?
-    public var onAudioTracksAvailable: (([AudioTrack]) -> Void)?
-    public var onAudioTrackChanged: ((Int?) -> Void)?
-    public var onSubtitleTracksAvailable: (([SubtitleTrack]) -> Void)?
-    public var onSubtitleTrackChanged: ((Int?) -> Void)?
+    var onStateChange: ((PlaybackState) -> Void)?
+    var onTimeUpdate: ((TimeInterval) -> Void)?
+    var onDurationChange: ((TimeInterval) -> Void)?
+    var onAudioTracksAvailable: (([AudioTrack]) -> Void)?
+    var onAudioTrackChanged: ((Int?) -> Void)?
+    var onSubtitleTracksAvailable: (([SubtitleTrack]) -> Void)?
+    var onSubtitleTrackChanged: ((Int?) -> Void)?
 
-    public private(set) var audioTracks: [AudioTrack] = []
-    public private(set) var selectedAudioTrackIndex: Int?
-    public private(set) var subtitleTracks: [SubtitleTrack] = []
-    public private(set) var selectedSubtitleTrackIndex: Int?
+    private(set) var audioTracks: [AudioTrack] = []
+    private(set) var selectedAudioTrackIndex: Int?
+    private(set) var subtitleTracks: [SubtitleTrack] = []
+    private(set) var selectedSubtitleTrackIndex: Int?
 
-    // MARK: - Public Access for UI
+    // MARK: - Access for UI
 
     /// The underlying VLCMediaPlayer instance for use with UIView
-    public private(set) var mediaPlayer: VLCMediaPlayer?
+    private(set) var mediaPlayer: VLCMediaPlayer?
 
     // MARK: - Private Properties
 
@@ -45,7 +44,7 @@ public final class VLCPlayerEngine: NSObject, PlayerEngine {
 
     // MARK: - Initialization
 
-    public override init() {
+    override init() {
         super.init()
     }
 
@@ -56,7 +55,7 @@ public final class VLCPlayerEngine: NSObject, PlayerEngine {
 
     // MARK: - PlayerEngine Protocol Methods
 
-    public func prepare(share: SavedShare, path: String, credentials: ShareCredentials?) async throws {
+    func prepare(share: SavedShare, path: String, credentials: ShareCredentials?) async throws {
         guard state == .idle else { return }
 
         updateState(.loading)
@@ -89,19 +88,19 @@ public final class VLCPlayerEngine: NSObject, PlayerEngine {
         print("[VLCPlayerEngine] State: ready")
     }
 
-    public func play() {
+    func play() {
         guard state.canPlay else { return }
         mediaPlayer?.play()
         // State will be updated via delegate callback
     }
 
-    public func pause() {
+    func pause() {
         guard state.canPause else { return }
         mediaPlayer?.pause()
         // State will be updated via delegate callback
     }
 
-    public func seek(to time: TimeInterval) async {
+    func seek(to time: TimeInterval) async {
         guard let player = mediaPlayer else { return }
 
         // VLCKit uses position (0.0 - 1.0) for seeking
@@ -113,12 +112,12 @@ public final class VLCPlayerEngine: NSObject, PlayerEngine {
         onTimeUpdate?(time)
     }
 
-    public func stop() {
+    func stop() {
         cleanup()
         updateState(.idle)
     }
 
-    public func selectAudioTrack(at index: Int) async {
+    func selectAudioTrack(at index: Int) async {
         guard let player = mediaPlayer,
               index >= 0 && index < audioTracks.count else {
             return
@@ -136,7 +135,7 @@ public final class VLCPlayerEngine: NSObject, PlayerEngine {
         print("[VLCPlayerEngine] Selected audio track: \(index) (VLC index: \(vlcTrackIndex)) - \(audioTracks[index].displayName)")
     }
 
-    public func selectSubtitleTrack(at index: Int?) async {
+    func selectSubtitleTrack(at index: Int?) async {
         guard let player = mediaPlayer else { return }
 
         if let index = index, index >= 0 && index < subtitleTracks.count {
@@ -167,7 +166,7 @@ public final class VLCPlayerEngine: NSObject, PlayerEngine {
         }
     }
 
-    public func addExternalSubtitle(url: URL, language: String?) async {
+    func addExternalSubtitle(url: URL, language: String?) async {
         guard let player = mediaPlayer else { return }
 
         // VLCKit can add external subtitles via addPlaybackSlave
@@ -483,7 +482,7 @@ public final class VLCPlayerEngine: NSObject, PlayerEngine {
 // MARK: - VLCMediaPlayerDelegate
 
 extension VLCPlayerEngine: VLCMediaPlayerDelegate {
-    nonisolated public func mediaPlayerStateChanged(_ notification: Notification) {
+    nonisolated func mediaPlayerStateChanged(_ notification: Notification) {
         Task { @MainActor in
             handleVLCStateChange()
         }
@@ -523,7 +522,7 @@ extension VLCPlayerEngine: VLCMediaPlayerDelegate {
         }
     }
 
-    nonisolated public func mediaPlayerTimeChanged(_ notification: Notification) {
+    nonisolated func mediaPlayerTimeChanged(_ notification: Notification) {
         // Time updates are handled by timer for more consistent updates
     }
 }

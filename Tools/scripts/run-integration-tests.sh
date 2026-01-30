@@ -18,7 +18,7 @@ echo "Running integration tests..."
 echo ""
 
 cd "$PROJECT_ROOT"
-LUEGE_TEST_SMB_SERVER=localhost swift test --filter LuegeIntegrationTests
+LUEGE_TEST_SMB_SERVER=localhost xcodebuild test -workspace Luege.xcworkspace -scheme "LuegeIntegrationTests iOS" -destination "platform=iOS Simulator,name=iPhone 17" -quiet
 
 echo ""
 echo "Tests complete. Server still running."

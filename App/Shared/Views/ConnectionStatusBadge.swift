@@ -1,5 +1,4 @@
 import SwiftUI
-import LuegeCore
 
 struct ConnectionStatusBadge: View {
     let status: ConnectionStatus
