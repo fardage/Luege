@@ -7,6 +7,11 @@ struct ContentView: View {
                 .tabItem {
                     Label("Sources", systemImage: "externaldrive.badge.wifi")
                 }
+
+            SettingsView()
+                .tabItem {
+                    Label("Settings", systemImage: "gear")
+                }
         }
     }
 }
