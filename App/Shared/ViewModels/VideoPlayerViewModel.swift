@@ -1,7 +1,12 @@
-import AVFoundation
 import Combine
 import LuegeCore
 import SwiftUI
+
+#if canImport(MobileVLCKit)
+import MobileVLCKit
+#elseif canImport(TVVLCKit)
+import TVVLCKit
+#endif
 
 @MainActor
 final class VideoPlayerViewModel: ObservableObject {
@@ -32,20 +37,18 @@ final class VideoPlayerViewModel: ObservableObject {
 
     private var engine: (any PlayerEngine)?
 
-    /// The current player engine type being used
-    private(set) var engineType: PlayerEngineType?
-
-    /// Access to AVPlayer for UI rendering (only available when using AVPlayerEngine)
-    var avPlayer: AVPlayer? {
-        (engine as? AVPlayerEngine)?.player
+    /// Access to VLC media player for UI rendering
+    #if canImport(MobileVLCKit) || canImport(TVVLCKit)
+    var vlcMediaPlayer: VLCMediaPlayer? {
+        (engine as? VLCPlayerEngine)?.mediaPlayer
     }
+    #endif
 
     // MARK: - Configuration
 
     private let video: FileEntry
     private let share: SavedShare
     private let subtitles: [FileEntry]
-    private let fileReader: any SMBFileReading
     private let credentialProvider: () async throws -> ShareCredentials?
 
     private let controlsHideDelay: TimeInterval = 4.0
@@ -73,16 +76,6 @@ final class VideoPlayerViewModel: ObservableObject {
 
     var videoTitle: String {
         video.name
-    }
-
-    /// Whether the current engine is AVPlayer-based (for UI layer selection)
-    var isUsingAVPlayer: Bool {
-        engineType == .avPlayer
-    }
-
-    /// Whether the current engine is VLC-based (for UI layer selection)
-    var isUsingVLC: Bool {
-        engineType == .vlc
     }
 
     /// Whether multiple audio tracks are available for selection
@@ -117,13 +110,11 @@ final class VideoPlayerViewModel: ObservableObject {
         video: FileEntry,
         share: SavedShare,
         subtitles: [FileEntry] = [],
-        fileReader: any SMBFileReading = SMBFileReader(),
         credentialProvider: @escaping () async throws -> ShareCredentials? = { nil }
     ) {
         self.video = video
         self.share = share
         self.subtitles = subtitles
-        self.fileReader = fileReader
         self.credentialProvider = credentialProvider
     }
 
@@ -138,22 +129,15 @@ final class VideoPlayerViewModel: ObservableObject {
 
         state = .loading
 
-        // Determine which engine to use based on format
-        let format = FormatAnalyzer().analyze(file: video)
-        let selectedEngineType = PlayerFactory.engineType(for: format)
-        engineType = selectedEngineType
-
-        print("[VideoPlayerVM] Format: \(format.container.displayName), using engine: \(selectedEngineType)")
-
-        // Check if VLC is required but not available
-        if selectedEngineType == .vlc && !PlayerFactory.isVLCAvailable {
-            print("[VideoPlayerVM] VLC required but not available")
+        // Check if VLC is available
+        guard PlayerFactory.isVLCAvailable else {
+            print("[VideoPlayerVM] VLC not available")
             state = .error(.vlcNotAvailable)
             return
         }
 
-        // Create the appropriate engine
-        let playerEngine = PlayerFactory.createEngine(ofType: selectedEngineType, fileReader: fileReader)
+        // Create VLC engine
+        let playerEngine = PlayerFactory.createEngine()
         engine = playerEngine
 
         // Set up callbacks
@@ -208,7 +192,7 @@ final class VideoPlayerViewModel: ObservableObject {
                 id: "external-\(index)",
                 index: 1000 + index,
                 languageCode: language,
-                languageName: languageName ?? subtitle.baseFileName,
+                languageName: languageName,
                 format: format,
                 isEmbedded: false,
                 isDefault: false,
@@ -216,7 +200,7 @@ final class VideoPlayerViewModel: ObservableObject {
             )
             tracks.append(track)
 
-            // Also notify the engine (for VLC which can load external subtitles)
+            // Load external subtitle into VLC
             await engine?.addExternalSubtitle(url: url, language: language)
             print("[VideoPlayerVM] Added external subtitle: \(subtitle.name)")
         }
@@ -324,7 +308,6 @@ final class VideoPlayerViewModel: ObservableObject {
         controlsHideTask?.cancel()
         engine?.stop()
         engine = nil
-        engineType = nil
         state = .idle
         currentTime = 0
         duration = 0
@@ -378,27 +361,18 @@ final class VideoPlayerViewModel: ObservableObject {
         selectedSubtitleTrackIndex = index
 
         if track.isEmbedded {
-            // For embedded tracks, use the engine's selection
-            // Find the position in embedded tracks array
+            // For embedded tracks, find the position in embedded tracks array
             if let embeddedIndex = embeddedSubtitleTracks.firstIndex(where: { $0.index == index }) {
                 Task {
                     await engine?.selectSubtitleTrack(at: embeddedIndex)
                 }
             }
         } else {
-            // For external tracks with VLC, the track should already be loaded
-            // VLC adds external subtitles to its track list, so we need to find the right index
-            // For AVPlayer, external subtitles aren't supported natively
-            if isUsingVLC {
-                // VLC external subtitles are appended to the track list
-                // Try selecting by the combined index position
-                let combinedIndex = subtitleTracks.firstIndex(where: { $0.index == index }) ?? 0
-                Task {
-                    await engine?.selectSubtitleTrack(at: combinedIndex)
-                }
-            } else {
-                // AVPlayer doesn't support external SRT - would need custom rendering
-                print("[VideoPlayerVM] External subtitles not supported with AVPlayer")
+            // For external tracks, VLC adds them to its track list
+            // Try selecting by the combined index position
+            let combinedIndex = subtitleTracks.firstIndex(where: { $0.index == index }) ?? 0
+            Task {
+                await engine?.selectSubtitleTrack(at: combinedIndex)
             }
         }
     }
@@ -482,8 +456,6 @@ final class VideoPlayerViewModel: ObservableObject {
         }
 
         engine.onSubtitleTrackChanged = { [weak self] index in
-            // Only update if selecting an embedded track
-            // External track selection is handled separately
             self?.selectedSubtitleTrackIndex = index
         }
     }

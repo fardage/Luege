@@ -5,6 +5,9 @@ import MobileVLCKit
 #elseif canImport(TVVLCKit)
 import Foundation
 import TVVLCKit
+#endif
+
+import LuegeCore
 
 /// VLCKit-based playback engine for formats not supported by AVPlayer
 @MainActor
@@ -61,7 +64,7 @@ public final class VLCPlayerEngine: NSObject, PlayerEngine {
         // Build SMB URL with credentials
         // VLCKit supports native SMB URLs: smb://user:pass@host/share/path
         let smbURL = buildSMBURL(share: share, path: path, credentials: credentials)
-        print("[VLCPlayerEngine] SMB URL: \(smbURL.absoluteString.replacingOccurrences(of: credentials?.password ?? "", with: "***"))")
+        print("[VLCPlayerEngine] SMB URL: \(smbURL?.absoluteString.replacingOccurrences(of: credentials?.password ?? "", with: "***") ?? "nil")")
 
         guard let url = smbURL else {
             let error = PlaybackError.playbackFailed("Failed to create SMB URL")
@@ -524,44 +527,3 @@ extension VLCPlayerEngine: VLCMediaPlayerDelegate {
         // Time updates are handled by timer for more consistent updates
     }
 }
-
-#else // Neither MobileVLCKit nor TVVLCKit available
-
-import Foundation
-
-/// Stub VLCPlayerEngine when VLCKit is not available
-/// This allows the code to compile on platforms without VLCKit
-@MainActor
-public final class VLCPlayerEngine: PlayerEngine {
-    public var state: PlaybackState = .idle
-    public var currentTime: TimeInterval = 0
-    public var duration: TimeInterval = 0
-    public var onStateChange: ((PlaybackState) -> Void)?
-    public var onTimeUpdate: ((TimeInterval) -> Void)?
-    public var onDurationChange: ((TimeInterval) -> Void)?
-    public var onAudioTracksAvailable: (([AudioTrack]) -> Void)?
-    public var onAudioTrackChanged: ((Int?) -> Void)?
-    public var onSubtitleTracksAvailable: (([SubtitleTrack]) -> Void)?
-    public var onSubtitleTrackChanged: ((Int?) -> Void)?
-
-    public var audioTracks: [AudioTrack] = []
-    public var selectedAudioTrackIndex: Int?
-    public var subtitleTracks: [SubtitleTrack] = []
-    public var selectedSubtitleTrackIndex: Int?
-
-    public init() {}
-
-    public func prepare(share: SavedShare, path: String, credentials: ShareCredentials?) async throws {
-        throw PlaybackError.vlcNotAvailable
-    }
-
-    public func play() {}
-    public func pause() {}
-    public func seek(to time: TimeInterval) async {}
-    public func stop() {}
-    public func selectAudioTrack(at index: Int) async {}
-    public func selectSubtitleTrack(at index: Int?) async {}
-    public func addExternalSubtitle(url: URL, language: String?) async {}
-}
-
-#endif

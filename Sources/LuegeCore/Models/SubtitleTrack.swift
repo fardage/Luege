@@ -57,13 +57,19 @@ public struct SubtitleTrack: Identifiable, Sendable, Equatable {
             // Try to get localized language name from code
             let localizedName = Locale.current.localizedString(forLanguageCode: code)
             parts.append(localizedName ?? code.uppercased())
-        } else {
+        } else if isEmbedded {
+            // Only show "Track N" for embedded tracks
             parts.append("Track \(index + 1)")
         }
+        // For external tracks without language info, we'll just show format/external below
 
         // Add forced indicator
         if isForced {
-            parts[0] += " (Forced)"
+            if !parts.isEmpty {
+                parts[0] += " (Forced)"
+            } else {
+                parts.append("Forced")
+            }
         }
 
         // Format info
@@ -74,6 +80,11 @@ public struct SubtitleTrack: Identifiable, Sendable, Equatable {
         // External indicator
         if !isEmbedded {
             parts.append("External")
+        }
+
+        // Fallback if we have nothing
+        if parts.isEmpty {
+            parts.append("Subtitle")
         }
 
         return parts.joined(separator: " - ")
