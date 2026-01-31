@@ -65,7 +65,7 @@ final class LibraryService: ObservableObject {
 
         // Create the library folder
         let folderName = displayName ?? (path.isEmpty ? share.displayName : (path as NSString).lastPathComponent)
-        var folder = LibraryFolder(
+        let folder = LibraryFolder(
             shareId: share.id,
             path: path,
             contentType: contentType,
@@ -76,9 +76,9 @@ final class LibraryService: ObservableObject {
         libraryFolders.append(folder)
         try saveToStorage()
 
-        // Scan folder in background
+        // Scan folder in background (full index, not just count)
         Task {
-            await scanFolder(folder, share: share, credentials: credentials)
+            await rescanFolder(folder, share: share, credentials: credentials)
         }
 
         return folder
