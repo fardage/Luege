@@ -22,11 +22,9 @@ struct MoviePosterCard: View {
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
 
-                    if let year = metadata.year {
-                        Text(String(year))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
+                    Text(metadata.year.map(String.init) ?? " ")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
             }
         }
