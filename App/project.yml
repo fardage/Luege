@@ -21,7 +21,9 @@ targets:
     platform: tvOS
     sources:
       - path: Shared
+        type: folder
       - path: tvOS
+        type: folder
     dependencies:
       - package: AMSMB2
         embed: true
@@ -40,7 +42,9 @@ targets:
     platform: iOS
     sources:
       - path: Shared
+        type: folder
       - path: iOS
+        type: folder
     dependencies:
       - package: AMSMB2
         embed: true
@@ -61,6 +65,7 @@ targets:
     platform: iOS
     sources:
       - path: LuegeScreenshotTests
+        type: folder
         excludes:
           - "**/__Snapshots__/**"
     dependencies:
@@ -78,6 +83,7 @@ targets:
     platform: tvOS
     sources:
       - path: LuegeScreenshotTests
+        type: folder
         excludes:
           - "**/__Snapshots__/**"
     dependencies:
@@ -95,6 +101,7 @@ targets:
     platform: iOS
     sources:
       - path: LuegeCoreTests
+        type: folder
     dependencies:
       - target: Luege iOS
     settings:
@@ -109,6 +116,7 @@ targets:
     platform: tvOS
     sources:
       - path: LuegeCoreTests
+        type: folder
     dependencies:
       - target: Luege tvOS
     settings:
@@ -123,6 +131,7 @@ targets:
     platform: iOS
     sources:
       - path: LuegeIntegrationTests
+        type: folder
     dependencies:
       - target: Luege iOS
     settings:
@@ -137,6 +146,7 @@ targets:
     platform: tvOS
     sources:
       - path: LuegeIntegrationTests
+        type: folder
     dependencies:
       - target: Luege tvOS
     settings:
