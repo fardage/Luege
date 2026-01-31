@@ -150,6 +150,21 @@ struct TMDbProductionCountry: Codable, Sendable {
     }
 }
 
+// MARK: - Authentication Response
+
+/// TMDb authentication response for API key validation
+struct TMDbAuthenticationResponse: Codable, Sendable {
+    let success: Bool
+    let statusMessage: String?
+    let statusCode: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case success
+        case statusMessage = "status_message"
+        case statusCode = "status_code"
+    }
+}
+
 // MARK: - Error Response
 
 /// TMDb API error response

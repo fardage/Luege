@@ -77,10 +77,12 @@ final class TMDbAPIKeyStorage: APIKeyStoring, @unchecked Sendable {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceName,
             kSecAttrAccount as String: accountName,
-            kSecReturnData as String: false
+            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecReturnAttributes as String: true
         ]
 
-        let status = SecItemCopyMatching(query as CFDictionary, nil)
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
         return status == errSecSuccess
     }
 

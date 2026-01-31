@@ -79,6 +79,23 @@ final class MetadataService: ObservableObject {
         isAPIKeyConfigured = false
     }
 
+    /// Test if the configured API key is valid
+    /// - Returns: nil if valid, error message if invalid
+    func testAPIKey() async -> String? {
+        guard isAPIKeyConfigured else {
+            return "No API key configured"
+        }
+
+        do {
+            try await tvFetcher.validateAPIKey()
+            return nil // Success
+        } catch let error as MetadataError {
+            return error.localizedDescription
+        } catch {
+            return error.localizedDescription
+        }
+    }
+
     // MARK: - Metadata Fetching
 
     /// Fetch or load metadata for a single file

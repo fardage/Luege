@@ -126,6 +126,26 @@ final class TMDbService: MetadataFetching, @unchecked Sendable {
         return try await performRequest(url: url)
     }
 
+    // MARK: - API Key Validation
+
+    /// Validate that the configured API key is valid
+    /// Makes a lightweight API call to verify authentication
+    func validateAPIKey() async throws {
+        let apiKey = try getAPIKey()
+
+        var components = URLComponents(string: "\(baseURL)/authentication")!
+        components.queryItems = [
+            URLQueryItem(name: "api_key", value: apiKey)
+        ]
+
+        guard let url = components.url else {
+            throw MetadataError.networkError("Invalid URL")
+        }
+
+        // We only care if it throws - success means valid key
+        let _: TMDbAuthenticationResponse = try await performRequest(url: url)
+    }
+
     // MARK: - Private
 
     private func getAPIKey() throws -> String {

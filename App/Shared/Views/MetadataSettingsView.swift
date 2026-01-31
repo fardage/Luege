@@ -9,6 +9,13 @@ struct MetadataSettingsView: View {
     @State private var isShowingRemoveConfirmation = false
     @State private var errorMessage: String?
     @State private var cacheSize: String = "Calculating..."
+    @State private var isTestingAPIKey = false
+    @State private var testResult: TestResult?
+
+    enum TestResult {
+        case success
+        case failure(String)
+    }
 
     var body: some View {
         Form {
@@ -42,6 +49,53 @@ struct MetadataSettingsView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                Button {
+                    Task {
+                        isTestingAPIKey = true
+                        testResult = nil
+                        if let error = await metadataService.testAPIKey() {
+                            testResult = .failure(error)
+                        } else {
+                            testResult = .success
+                            // Auto-dismiss success after delay
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                                if case .success = testResult {
+                                    testResult = nil
+                                }
+                            }
+                        }
+                        isTestingAPIKey = false
+                    }
+                } label: {
+                    if isTestingAPIKey {
+                        HStack {
+                            ProgressView()
+                            Text("Testing...")
+                                .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        Label("Test API Key", systemImage: "arrow.triangle.2.circlepath")
+                    }
+                }
+                .disabled(isTestingAPIKey)
+
+                if let result = testResult {
+                    HStack {
+                        switch result {
+                        case .success:
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                            Text("API key is valid")
+                                .foregroundStyle(.green)
+                        case .failure(let message):
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.red)
+                            Text(message)
+                                .foregroundStyle(.red)
+                        }
+                    }
+                }
+
                 Button(role: .destructive) {
                     isShowingRemoveConfirmation = true
                 } label: {
@@ -60,25 +114,20 @@ struct MetadataSettingsView: View {
                     Text("Movie metadata will no longer be fetched automatically.")
                 }
             } else if isShowingAPIKeyField {
-                #if os(iOS)
                 TextField("TMDb API Key", text: $apiKeyInput)
-                    .textContentType(.password)
                     .autocorrectionDisabled()
+                #if os(iOS)
                     .textInputAutocapitalization(.never)
-                #else
-                TextField("TMDb API Key", text: $apiKeyInput)
                 #endif
 
-                HStack {
-                    Button("Cancel") {
-                        apiKeyInput = ""
-                        isShowingAPIKeyField = false
-                    }
-                    Spacer()
-                    Button("Save") {
-                        saveAPIKey()
-                    }
-                    .disabled(apiKeyInput.trimmingCharacters(in: .whitespaces).isEmpty)
+                Button("Save") {
+                    saveAPIKey()
+                }
+                .disabled(apiKeyInput.trimmingCharacters(in: .whitespaces).isEmpty)
+
+                Button("Cancel", role: .cancel) {
+                    apiKeyInput = ""
+                    isShowingAPIKeyField = false
                 }
             } else {
                 Button {
@@ -150,6 +199,7 @@ struct MetadataSettingsView: View {
     private func removeAPIKey() {
         do {
             try metadataService.removeAPIKey()
+            testResult = nil
         } catch {
             errorMessage = "Failed to remove API key: \(error.localizedDescription)"
         }
