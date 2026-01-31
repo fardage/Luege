@@ -5,9 +5,11 @@ import Foundation
 final class MockArtworkCache: ArtworkCaching, @unchecked Sendable {
     private var posters: [String: Data] = [:]
     private var backdrops: [String: Data] = [:]
+    private var stills: [String: Data] = [:]
 
     var cachePosterCallCount = 0
     var cacheBackdropCallCount = 0
+    var cacheStillCallCount = 0
     var deleteCallCount = 0
     var shouldThrowOnCache = false
 
@@ -16,6 +18,10 @@ final class MockArtworkCache: ArtworkCaching, @unchecked Sendable {
     }
 
     private func backdropKey(_ fileId: UUID, _ size: BackdropSize) -> String {
+        "\(fileId.uuidString)_\(size.rawValue)"
+    }
+
+    private func stillKey(_ fileId: UUID, _ size: StillSize) -> String {
         "\(fileId.uuidString)_\(size.rawValue)"
     }
 
@@ -53,6 +59,23 @@ final class MockArtworkCache: ArtworkCaching, @unchecked Sendable {
         return URL(fileURLWithPath: "/mock/backdrops/\(backdropKey(fileId, size)).jpg")
     }
 
+    func cacheStill(_ data: Data, for fileId: UUID, size: StillSize) throws {
+        cacheStillCallCount += 1
+        if shouldThrowOnCache {
+            throw MetadataError.cacheFailed("Mock cache error")
+        }
+        stills[stillKey(fileId, size)] = data
+    }
+
+    func getCachedStill(for fileId: UUID, size: StillSize) -> Data? {
+        stills[stillKey(fileId, size)]
+    }
+
+    func stillURL(for fileId: UUID, size: StillSize) -> URL? {
+        guard stills[stillKey(fileId, size)] != nil else { return nil }
+        return URL(fileURLWithPath: "/mock/stills/\(stillKey(fileId, size)).jpg")
+    }
+
     func deleteArtwork(for fileId: UUID) throws {
         deleteCallCount += 1
         for size in PosterSize.allCases {
@@ -61,17 +84,22 @@ final class MockArtworkCache: ArtworkCaching, @unchecked Sendable {
         for size in BackdropSize.allCases {
             backdrops.removeValue(forKey: backdropKey(fileId, size))
         }
+        for size in StillSize.allCases {
+            stills.removeValue(forKey: stillKey(fileId, size))
+        }
     }
 
     func deleteAllArtwork() throws {
         posters.removeAll()
         backdrops.removeAll()
+        stills.removeAll()
     }
 
     func cacheSize() throws -> Int64 {
         let posterBytes = posters.values.reduce(0) { $0 + $1.count }
         let backdropBytes = backdrops.values.reduce(0) { $0 + $1.count }
-        return Int64(posterBytes + backdropBytes)
+        let stillBytes = stills.values.reduce(0) { $0 + $1.count }
+        return Int64(posterBytes + backdropBytes + stillBytes)
     }
 
     /// Helper to pre-populate cache for tests
@@ -81,5 +109,9 @@ final class MockArtworkCache: ArtworkCaching, @unchecked Sendable {
 
     func setBackdrop(_ data: Data, for fileId: UUID, size: BackdropSize) {
         backdrops[backdropKey(fileId, size)] = data
+    }
+
+    func setStill(_ data: Data, for fileId: UUID, size: StillSize) {
+        stills[stillKey(fileId, size)] = data
     }
 }

@@ -3,11 +3,13 @@ import SwiftUI
 struct LibraryView: View {
     @EnvironmentObject private var libraryService: LibraryService
     @EnvironmentObject private var shareManager: ShareManager
+    @EnvironmentObject private var metadataService: MetadataService
     @Binding var selectedTab: Int
 
     @State private var selectedFolder: LibraryFolder?
     @State private var folderToRemove: LibraryFolder?
     @State private var isShowingRemoveConfirmation = false
+    @State private var selectedTVShow: TVShowMetadata?
 
     var body: some View {
         NavigationStack {
@@ -76,7 +78,45 @@ struct LibraryView: View {
     @ViewBuilder
     private var libraryList: some View {
         List {
-            ForEach(activeContentTypes) { contentType in
+            // TV Shows section with grid view link
+            if hasTVShowFolders {
+                Section {
+                    NavigationLink {
+                        TVLibrarySection(
+                            folders: tvShowFolders,
+                            shareManager: shareManager
+                        ) { file, share in
+                            // Handle play - navigate to folder browser
+                            // This will be handled by the destination view
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "tv")
+                                .font(.title2)
+                                .foregroundStyle(.secondary)
+                                .frame(width: 40)
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("TV Shows")
+                                    .font(.headline)
+
+                                Text("\(tvShowFolders.count) folders")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 8)
+                    }
+                }
+            }
+
+            // Other content types (Movies, Home Videos, Other)
+            ForEach(nonTVContentTypes) { contentType in
                 Section(contentType.displayName) {
                     ForEach(folders(for: contentType)) { folder in
                         LibraryFolderRow(
@@ -108,6 +148,18 @@ struct LibraryView: View {
             await shareManager.refreshAllStatuses()
         }
         #endif
+    }
+
+    private var hasTVShowFolders: Bool {
+        !tvShowFolders.isEmpty
+    }
+
+    private var tvShowFolders: [LibraryFolder] {
+        folders(for: .tvShows)
+    }
+
+    private var nonTVContentTypes: [LibraryContentType] {
+        activeContentTypes.filter { $0 != .tvShows }
     }
 
     // MARK: - Computed Properties

@@ -125,18 +125,10 @@ struct MetadataSettingsView: View {
     @ViewBuilder
     private var attributionSection: some View {
         Section {
-            VStack(alignment: .leading, spacing: 8) {
-                Image("TMDb-logo") // Optional TMDb logo asset
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 20)
-                    .opacity(0) // Hidden if asset doesn't exist
-
-                Text("This product uses the TMDb API but is not endorsed or certified by TMDb.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.vertical, 4)
+            Text("This product uses the TMDb API but is not endorsed or certified by TMDb.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.vertical, 4)
         }
     }
 

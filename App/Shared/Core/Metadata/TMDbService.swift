@@ -57,6 +57,75 @@ final class TMDbService: MetadataFetching, @unchecked Sendable {
         return try await performRequest(url: url)
     }
 
+    // MARK: - TV Show API
+
+    /// Search for TV shows matching the given name
+    /// - Parameters:
+    ///   - name: The TV show name to search for
+    ///   - year: Optional first air year to narrow results
+    /// - Returns: Array of search results
+    func searchTV(name: String, year: Int? = nil) async throws -> [TMDbTVSearchResult] {
+        let apiKey = try getAPIKey()
+
+        var components = URLComponents(string: "\(baseURL)/search/tv")!
+        var queryItems = [
+            URLQueryItem(name: "api_key", value: apiKey),
+            URLQueryItem(name: "query", value: name),
+            URLQueryItem(name: "include_adult", value: "false")
+        ]
+
+        if let year = year {
+            queryItems.append(URLQueryItem(name: "first_air_date_year", value: String(year)))
+        }
+
+        components.queryItems = queryItems
+
+        guard let url = components.url else {
+            throw MetadataError.networkError("Invalid URL")
+        }
+
+        let response: TMDbTVSearchResponse = try await performRequest(url: url)
+        return response.results
+    }
+
+    /// Fetch detailed TV series information
+    /// - Parameter tmdbId: The TMDb series ID
+    /// - Returns: Detailed series information including season list
+    func fetchTVDetails(tmdbId: Int) async throws -> TMDbTVSeriesDetails {
+        let apiKey = try getAPIKey()
+
+        var components = URLComponents(string: "\(baseURL)/tv/\(tmdbId)")!
+        components.queryItems = [
+            URLQueryItem(name: "api_key", value: apiKey)
+        ]
+
+        guard let url = components.url else {
+            throw MetadataError.networkError("Invalid URL")
+        }
+
+        return try await performRequest(url: url)
+    }
+
+    /// Fetch season details including episode list
+    /// - Parameters:
+    ///   - seriesId: The TMDb series ID
+    ///   - seasonNumber: The season number (0 for specials)
+    /// - Returns: Season details with episode list
+    func fetchSeasonDetails(seriesId: Int, seasonNumber: Int) async throws -> TMDbSeasonDetails {
+        let apiKey = try getAPIKey()
+
+        var components = URLComponents(string: "\(baseURL)/tv/\(seriesId)/season/\(seasonNumber)")!
+        components.queryItems = [
+            URLQueryItem(name: "api_key", value: apiKey)
+        ]
+
+        guard let url = components.url else {
+            throw MetadataError.networkError("Invalid URL")
+        }
+
+        return try await performRequest(url: url)
+    }
+
     // MARK: - Private
 
     private func getAPIKey() throws -> String {
@@ -152,5 +221,22 @@ extension TMDbService {
         case w780
         case w1280
         case original
+    }
+
+    /// Available still sizes from TMDb (for episode thumbnails)
+    enum StillSize: String, Sendable {
+        case w92
+        case w185
+        case w300
+        case original
+    }
+
+    /// Generate a still (episode thumbnail) image URL
+    /// - Parameters:
+    ///   - path: The still path from TMDb
+    ///   - size: The desired size
+    /// - Returns: Full URL for the still image
+    static func stillURL(path: String, size: StillSize = .w300) -> URL? {
+        URL(string: "\(imageBaseURL)/\(size.rawValue)\(path)")
     }
 }

@@ -7,6 +7,9 @@ protocol ArtworkDownloading: Sendable {
 
     /// Download and cache a backdrop image
     func downloadAndCacheBackdrop(tmdbPath: String, for fileId: UUID, size: BackdropSize) async throws
+
+    /// Download and cache a still (episode thumbnail) image
+    func downloadAndCacheStill(tmdbPath: String, for fileId: UUID, size: StillSize) async throws
 }
 
 /// Protocol for caching artwork images
@@ -52,6 +55,27 @@ protocol ArtworkCaching: Sendable {
     ///   - size: The backdrop size
     /// - Returns: File URL if cached, nil otherwise
     func backdropURL(for fileId: UUID, size: BackdropSize) -> URL?
+
+    /// Cache a still (episode thumbnail) image for a file
+    /// - Parameters:
+    ///   - data: The image data
+    ///   - fileId: The library file ID
+    ///   - size: The still size
+    func cacheStill(_ data: Data, for fileId: UUID, size: StillSize) throws
+
+    /// Get cached still data
+    /// - Parameters:
+    ///   - fileId: The library file ID
+    ///   - size: The still size
+    /// - Returns: Cached image data, or nil if not cached
+    func getCachedStill(for fileId: UUID, size: StillSize) -> Data?
+
+    /// Get the file URL for a cached still
+    /// - Parameters:
+    ///   - fileId: The library file ID
+    ///   - size: The still size
+    /// - Returns: File URL if cached, nil otherwise
+    func stillURL(for fileId: UUID, size: StillSize) -> URL?
 
     /// Delete cached artwork for a file
     /// - Parameter fileId: The library file ID
@@ -108,4 +132,24 @@ enum BackdropSize: String, Sendable, CaseIterable {
 
     /// The size for tvOS full-screen display
     static var tvOS: BackdropSize { .w1280 }
+}
+
+// MARK: - Still Sizes
+
+/// Available still (episode thumbnail) sizes for caching
+enum StillSize: String, Sendable, CaseIterable {
+    /// 92 pixels wide - for small thumbnails
+    case w92
+    /// 185 pixels wide - for medium thumbnails
+    case w185
+    /// 300 pixels wide - for standard display (default)
+    case w300
+    /// Original resolution
+    case original
+
+    /// The default size for episode row display
+    static var row: StillSize { .w300 }
+
+    /// The default size for detail view
+    static var detail: StillSize { .w300 }
 }

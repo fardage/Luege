@@ -22,6 +22,11 @@ final class ArtworkCache: ArtworkCaching, ArtworkDownloading, @unchecked Sendabl
         cacheDirectory.appendingPathComponent("backdrops", isDirectory: true)
     }
 
+    /// Stills (episode thumbnails) subdirectory
+    private var stillsDirectory: URL {
+        cacheDirectory.appendingPathComponent("stills", isDirectory: true)
+    }
+
     init(session: URLSession = .shared) {
         self.session = session
         ensureDirectoriesExist()
@@ -30,6 +35,7 @@ final class ArtworkCache: ArtworkCaching, ArtworkDownloading, @unchecked Sendabl
     private func ensureDirectoriesExist() {
         try? fileManager.createDirectory(at: postersDirectory, withIntermediateDirectories: true)
         try? fileManager.createDirectory(at: backdropsDirectory, withIntermediateDirectories: true)
+        try? fileManager.createDirectory(at: stillsDirectory, withIntermediateDirectories: true)
     }
 
     // MARK: - Poster Caching
@@ -86,6 +92,33 @@ final class ArtworkCache: ArtworkCaching, ArtworkDownloading, @unchecked Sendabl
         backdropsDirectory.appendingPathComponent("\(fileId.uuidString)_\(size.rawValue).jpg")
     }
 
+    // MARK: - Still Caching
+
+    func cacheStill(_ data: Data, for fileId: UUID, size: StillSize) throws {
+        try queue.sync(flags: .barrier) {
+            let path = stillPath(for: fileId, size: size)
+            try data.write(to: path, options: .atomic)
+        }
+    }
+
+    func getCachedStill(for fileId: UUID, size: StillSize) -> Data? {
+        queue.sync {
+            let path = stillPath(for: fileId, size: size)
+            return try? Data(contentsOf: path)
+        }
+    }
+
+    func stillURL(for fileId: UUID, size: StillSize) -> URL? {
+        queue.sync {
+            let path = stillPath(for: fileId, size: size)
+            return fileManager.fileExists(atPath: path.path) ? path : nil
+        }
+    }
+
+    private func stillPath(for fileId: UUID, size: StillSize) -> URL {
+        stillsDirectory.appendingPathComponent("\(fileId.uuidString)_\(size.rawValue).jpg")
+    }
+
     // MARK: - Deletion
 
     func deleteArtwork(for fileId: UUID) throws {
@@ -101,6 +134,14 @@ final class ArtworkCache: ArtworkCaching, ArtworkDownloading, @unchecked Sendabl
             // Delete all backdrop sizes
             for size in BackdropSize.allCases {
                 let path = backdropPath(for: fileId, size: size)
+                if fileManager.fileExists(atPath: path.path) {
+                    try fileManager.removeItem(at: path)
+                }
+            }
+
+            // Delete all still sizes
+            for size in StillSize.allCases {
+                let path = stillPath(for: fileId, size: size)
                 if fileManager.fileExists(atPath: path.path) {
                     try fileManager.removeItem(at: path)
                 }
@@ -168,6 +209,20 @@ final class ArtworkCache: ArtworkCaching, ArtworkDownloading, @unchecked Sendabl
         try cacheBackdrop(data, for: fileId, size: size)
     }
 
+    /// Download and cache a still (episode thumbnail) image
+    /// - Parameters:
+    ///   - tmdbPath: The TMDb still path (e.g., "/abc123.jpg")
+    ///   - fileId: The library file ID
+    ///   - size: The desired still size
+    func downloadAndCacheStill(tmdbPath: String, for fileId: UUID, size: StillSize = .row) async throws {
+        guard let url = TMDbService.stillURL(path: tmdbPath, size: tmdbStillSize(for: size)) else {
+            throw MetadataError.cacheFailed("Invalid still URL")
+        }
+
+        let data = try await downloadImage(from: url)
+        try cacheStill(data, for: fileId, size: size)
+    }
+
     private func downloadImage(from url: URL) async throws -> Data {
         let (data, response): (Data, URLResponse)
         do {
@@ -203,6 +258,16 @@ final class ArtworkCache: ArtworkCaching, ArtworkDownloading, @unchecked Sendabl
         case .w300: return .w300
         case .w780: return .w780
         case .w1280: return .w1280
+        case .original: return .original
+        }
+    }
+
+    /// Convert our StillSize to TMDb API size
+    private func tmdbStillSize(for size: StillSize) -> TMDbService.StillSize {
+        switch size {
+        case .w92: return .w92
+        case .w185: return .w185
+        case .w300: return .w300
         case .original: return .original
         }
     }
