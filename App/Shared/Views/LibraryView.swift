@@ -40,11 +40,21 @@ struct LibraryView: View {
             .animation(.easeInOut(duration: 0.2), value: libraryService.isScanning)
             .navigationDestination(item: $selectedFolder) { folder in
                 if let share = shareManager.savedShare(for: folder.shareId) {
-                    FolderBrowserView(
-                        share: share,
-                        shareManager: shareManager,
-                        initialPath: folder.path
-                    )
+                    // Use MovieLibraryFolderView for Movies content type
+                    if folder.contentType == .movies {
+                        MovieLibraryFolderView(
+                            folder: folder,
+                            share: share,
+                            shareManager: shareManager
+                        )
+                    } else {
+                        // Fall back to folder browser for other content types
+                        FolderBrowserView(
+                            share: share,
+                            shareManager: shareManager,
+                            initialPath: folder.path
+                        )
+                    }
                 } else {
                     ContentUnavailableView(
                         "Share Not Found",

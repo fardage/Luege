@@ -127,13 +127,39 @@ final class LibraryService: ObservableObject {
         libraryFolders.filter { $0.contentType == contentType }
     }
 
-    /// Rescan a library folder
+    /// Rescan a library folder (full index, not just count)
     func rescanFolder(
         _ folder: LibraryFolder,
         share: SavedShare,
         credentials: ShareCredentials?
     ) async {
-        await scanFolder(folder, share: share, credentials: credentials)
+        guard !isScanning else { return }
+
+        isScanning = true
+        scanProgress = nil
+
+        // Use scanCoordinator for full file indexing
+        let result = await scanCoordinator.scanAllFolders(
+            folders: [folder],
+            shareProvider: { shareId in
+                shareId == share.id ? share : nil
+            },
+            credentialsProvider: { _ in
+                credentials
+            },
+            statusProvider: { _ in
+                .online
+            },
+            onProgress: { [weak self] progress in
+                Task { @MainActor [weak self] in
+                    self?.handleScanProgress(progress)
+                }
+            }
+        )
+
+        lastScanResult = result
+        scanProgress = nil
+        isScanning = false
     }
 
     /// Rescan all library folders for a share
@@ -161,6 +187,11 @@ final class LibraryService: ObservableObject {
     /// Get the count of missing files for a folder
     func missingFileCount(for folderId: UUID) -> Int {
         (try? fileStorage.fileCount(forFolder: folderId, status: .missing)) ?? 0
+    }
+
+    /// Get all files for a library folder
+    func files(for folderId: UUID) -> [LibraryFile] {
+        (try? fileStorage.loadFiles(forFolder: folderId)) ?? []
     }
 
     // MARK: - Library-Wide Scanning
