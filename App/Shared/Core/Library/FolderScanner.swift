@@ -13,6 +13,10 @@ final class FolderScanner: FolderScanning, @unchecked Sendable {
         try await scanRecursive(path: path, browser: browser, currentDepth: 0)
     }
 
+    func enumerateFiles(path: String, using browser: any DirectoryBrowsing) async throws -> [DiscoveredFile] {
+        try await enumerateRecursive(basePath: path, currentPath: path, browser: browser, currentDepth: 0)
+    }
+
     private func scanRecursive(
         path: String,
         browser: any DirectoryBrowsing,
@@ -56,5 +60,67 @@ final class FolderScanner: FolderScanning, @unchecked Sendable {
         }
 
         return FolderScanResult(videoCount: videoCount, totalSize: totalSize)
+    }
+
+    private func enumerateRecursive(
+        basePath: String,
+        currentPath: String,
+        browser: any DirectoryBrowsing,
+        currentDepth: Int
+    ) async throws -> [DiscoveredFile] {
+        // Prevent infinite recursion
+        guard currentDepth < maxDepth else {
+            return []
+        }
+
+        let entries: [FileEntry]
+        do {
+            entries = try await browser.listDirectory(at: currentPath)
+        } catch {
+            throw LibraryError.scanFailed(error.localizedDescription)
+        }
+
+        var files: [DiscoveredFile] = []
+
+        for entry in entries {
+            if entry.isVideoFile {
+                // Calculate relative path from the base folder
+                let fullPath = currentPath.isEmpty ? entry.name : "\(currentPath)/\(entry.name)"
+                let relativePath: String
+                if basePath.isEmpty {
+                    relativePath = fullPath
+                } else if fullPath.hasPrefix(basePath + "/") {
+                    relativePath = String(fullPath.dropFirst(basePath.count + 1))
+                } else if fullPath == basePath {
+                    relativePath = entry.name
+                } else {
+                    relativePath = fullPath
+                }
+
+                files.append(DiscoveredFile(
+                    relativePath: relativePath,
+                    fileName: entry.name,
+                    size: entry.size ?? 0,
+                    modifiedDate: entry.modifiedDate
+                ))
+            } else if entry.isFolder {
+                // Recursively enumerate subdirectory
+                let subPath = currentPath.isEmpty ? entry.name : "\(currentPath)/\(entry.name)"
+                do {
+                    let subFiles = try await enumerateRecursive(
+                        basePath: basePath,
+                        currentPath: subPath,
+                        browser: browser,
+                        currentDepth: currentDepth + 1
+                    )
+                    files.append(contentsOf: subFiles)
+                } catch {
+                    // Continue scanning other folders if one fails
+                    print("[FolderScanner] Failed to enumerate subdirectory \(subPath): \(error)")
+                }
+            }
+        }
+
+        return files
     }
 }

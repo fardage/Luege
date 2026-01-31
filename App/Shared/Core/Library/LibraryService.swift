@@ -6,23 +6,33 @@ import Combine
 final class LibraryService: ObservableObject {
     @Published public private(set) var libraryFolders: [LibraryFolder] = []
     @Published public private(set) var isScanning = false
+    @Published public private(set) var scanProgress: ScanProgress?
+    @Published public private(set) var lastScanResult: LibraryScanResult?
 
     private let storage: any LibraryFolderStoring
     private let scanner: any FolderScanning
+    private let scanCoordinator: any LibraryScanning
+    private let fileStorage: any LibraryFileStoring
     private let browserFactory: () -> any DirectoryBrowsing
 
     /// Initialize the library service
     /// - Parameters:
     ///   - storage: Storage service for persisting library folders
     ///   - scanner: Scanner for counting video files
+    ///   - scanCoordinator: Coordinator for library-wide scans
+    ///   - fileStorage: Storage for library file indexes
     ///   - browserFactory: Factory for creating directory browsers
     init(
         storage: any LibraryFolderStoring = LibraryFolderStorage(),
         scanner: any FolderScanning = FolderScanner(),
+        scanCoordinator: any LibraryScanning = LibraryScanCoordinator(),
+        fileStorage: any LibraryFileStoring = LibraryFileStorage(),
         browserFactory: @escaping () -> any DirectoryBrowsing = { SMBDirectoryBrowser() }
     ) {
         self.storage = storage
         self.scanner = scanner
+        self.scanCoordinator = scanCoordinator
+        self.fileStorage = fileStorage
         self.browserFactory = browserFactory
     }
 
@@ -79,6 +89,8 @@ final class LibraryService: ObservableObject {
     func removeFolder(_ folder: LibraryFolder) throws {
         libraryFolders.removeAll { $0.id == folder.id }
         try saveToStorage()
+        // Clean up file index
+        try? fileStorage.deleteFiles(forFolder: folder.id)
     }
 
     /// Remove a folder by ID
@@ -86,6 +98,8 @@ final class LibraryService: ObservableObject {
     func removeFolder(id folderId: UUID) throws {
         libraryFolders.removeAll { $0.id == folderId }
         try saveToStorage()
+        // Clean up file index
+        try? fileStorage.deleteFiles(forFolder: folderId)
     }
 
     /// Check if a path on a share is in the library
@@ -135,8 +149,69 @@ final class LibraryService: ObservableObject {
 
     /// Remove all library folders associated with a share
     func removeFolders(for shareId: UUID) throws {
+        let foldersToRemove = libraryFolders.filter { $0.shareId == shareId }
         libraryFolders.removeAll { $0.shareId == shareId }
         try saveToStorage()
+        // Clean up file indexes
+        for folder in foldersToRemove {
+            try? fileStorage.deleteFiles(forFolder: folder.id)
+        }
+    }
+
+    /// Get the count of missing files for a folder
+    func missingFileCount(for folderId: UUID) -> Int {
+        (try? fileStorage.fileCount(forFolder: folderId, status: .missing)) ?? 0
+    }
+
+    // MARK: - Library-Wide Scanning
+
+    /// Scan all library folders
+    /// - Parameters:
+    ///   - shareProvider: Closure to get SavedShare for a share ID
+    ///   - credentialsProvider: Closure to get credentials for a share
+    ///   - statusProvider: Closure to get connection status for a share
+    func scanAllFolders(
+        shareProvider: @escaping @Sendable (UUID) -> SavedShare?,
+        credentialsProvider: @escaping @Sendable (SavedShare) async throws -> ShareCredentials?,
+        statusProvider: @escaping @Sendable (UUID) -> ConnectionStatus
+    ) async {
+        guard !isScanning else { return }
+        guard !libraryFolders.isEmpty else { return }
+
+        isScanning = true
+        scanProgress = nil
+        lastScanResult = nil
+
+        let result = await scanCoordinator.scanAllFolders(
+            folders: libraryFolders,
+            shareProvider: shareProvider,
+            credentialsProvider: credentialsProvider,
+            statusProvider: statusProvider,
+            onProgress: { [weak self] progress in
+                Task { @MainActor [weak self] in
+                    self?.handleScanProgress(progress)
+                }
+            }
+        )
+
+        lastScanResult = result
+        scanProgress = nil
+        isScanning = false
+    }
+
+    private func handleScanProgress(_ progress: ScanProgress) {
+        scanProgress = progress
+
+        // Update folder video count on completion
+        if case .completed(let videoCount, _, _) = progress.status {
+            updateFolder(progress.currentFolder.id) { folder in
+                folder.withScanResult(videoCount: videoCount, error: nil)
+            }
+        } else if case .failed(let error) = progress.status {
+            updateFolder(progress.currentFolder.id) { folder in
+                folder.withScanResult(videoCount: nil, error: error)
+            }
+        }
     }
 
     // MARK: - Private Methods

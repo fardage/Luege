@@ -21,6 +21,21 @@ struct LibraryView: View {
                 }
             }
             .navigationTitle("Library")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button(action: refreshLibrary) {
+                        Label("Refresh", systemImage: "arrow.clockwise")
+                    }
+                    .disabled(libraryService.isScanning || libraryService.libraryFolders.isEmpty)
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if libraryService.isScanning, let progress = libraryService.scanProgress {
+                    ScanProgressBanner(progress: progress)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+            .animation(.easeInOut(duration: 0.2), value: libraryService.isScanning)
             .navigationDestination(item: $selectedFolder) { folder in
                 if let share = shareManager.savedShare(for: folder.shareId) {
                     FolderBrowserView(
@@ -68,6 +83,7 @@ struct LibraryView: View {
                             folder: folder,
                             shareName: shareName(for: folder),
                             status: shareStatus(for: folder),
+                            missingFileCount: libraryService.missingFileCount(for: folder.id),
                             onRemove: {
                                 confirmRemove(folder)
                             },
@@ -145,6 +161,77 @@ struct LibraryView: View {
 
         let credentials = try? await shareManager.credentials(for: share)
         await libraryService.rescanFolder(folder, share: share, credentials: credentials)
+    }
+
+    private func refreshLibrary() {
+        // Capture current state for background scan
+        let savedSharesSnapshot = shareManager.savedShares
+        let statusesSnapshot = shareManager.shareStatuses
+
+        Task {
+            await libraryService.scanAllFolders(
+                shareProvider: { shareId in
+                    savedSharesSnapshot.first { $0.id == shareId }
+                },
+                credentialsProvider: { share in
+                    try await shareManager.credentials(for: share)
+                },
+                statusProvider: { shareId in
+                    statusesSnapshot[shareId] ?? .unknown
+                }
+            )
+        }
+    }
+}
+
+// MARK: - Scan Progress Banner
+
+private struct ScanProgressBanner: View {
+    let progress: ScanProgress
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ProgressView()
+                #if os(iOS)
+                .progressViewStyle(.circular)
+                #endif
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Scanning Library")
+                    .font(.subheadline.weight(.medium))
+
+                Text(statusText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Text("\(progress.folderIndex + 1)/\(progress.totalFolders)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding()
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .padding()
+    }
+
+    private var statusText: String {
+        switch progress.status {
+        case .scanning:
+            return progress.currentFolder.displayName
+        case .completed(let videoCount, _, _):
+            return "\(progress.currentFolder.displayName): \(videoCount) videos"
+        case .failed:
+            return "\(progress.currentFolder.displayName): Failed"
+        case .skipped(let reason):
+            switch reason {
+            case .shareNotFound:
+                return "\(progress.currentFolder.displayName): Share not found"
+            case .shareOffline:
+                return "\(progress.currentFolder.displayName): Offline"
+            }
+        }
     }
 }
 

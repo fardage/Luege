@@ -6,20 +6,27 @@ final class LibraryServiceTests: XCTestCase {
     var service: LibraryService!
     var mockStorage: MockLibraryFolderStore!
     var mockScanner: MockFolderScanner!
+    var mockFileStorage: MockLibraryFileStorage!
     var mockBrowser: MockDirectoryBrowser!
 
     override func setUp() async throws {
         try await super.setUp()
         mockStorage = MockLibraryFolderStore()
         mockScanner = MockFolderScanner()
+        mockFileStorage = MockLibraryFileStorage()
         mockBrowser = MockDirectoryBrowser()
 
+        let browser = mockBrowser!
         service = LibraryService(
             storage: mockStorage,
             scanner: mockScanner,
-            browserFactory: { [weak self] in
-                self?.mockBrowser ?? MockDirectoryBrowser()
-            }
+            scanCoordinator: LibraryScanCoordinator(
+                scanner: mockScanner,
+                fileStorage: mockFileStorage,
+                browserFactory: { browser }
+            ),
+            fileStorage: mockFileStorage,
+            browserFactory: { browser }
         )
     }
 
@@ -27,6 +34,7 @@ final class LibraryServiceTests: XCTestCase {
         service = nil
         mockStorage = nil
         mockScanner = nil
+        mockFileStorage = nil
         mockBrowser = nil
         try await super.tearDown()
     }

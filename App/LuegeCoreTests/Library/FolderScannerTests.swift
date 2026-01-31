@@ -158,4 +158,96 @@ final class FolderScannerTests: XCTestCase {
             }
         }
     }
+
+    // MARK: - enumerateFiles Tests
+
+    func testEnumerateEmptyFolder() async throws {
+        mockBrowser.setContents([], at: "Movies")
+
+        let share = SavedShare(hostName: "NAS", hostAddress: "192.168.1.100", shareName: "Media")
+        try await mockBrowser.connect(to: share, credentials: nil)
+
+        let files = try await scanner.enumerateFiles(path: "Movies", using: mockBrowser)
+
+        XCTAssertTrue(files.isEmpty)
+    }
+
+    func testEnumerateVideosOnly() async throws {
+        mockBrowser.setContents([
+            MockDirectoryBrowser.sampleVideo(name: "movie1.mkv", size: 1_000_000),
+            MockDirectoryBrowser.sampleVideo(name: "movie2.mp4", size: 2_000_000),
+            MockDirectoryBrowser.sampleFile(name: "readme.txt", size: 100)
+        ], at: "Movies")
+
+        let share = SavedShare(hostName: "NAS", hostAddress: "192.168.1.100", shareName: "Media")
+        try await mockBrowser.connect(to: share, credentials: nil)
+
+        let files = try await scanner.enumerateFiles(path: "Movies", using: mockBrowser)
+
+        XCTAssertEqual(files.count, 2)
+        XCTAssertTrue(files.allSatisfy { $0.fileName.hasSuffix(".mkv") || $0.fileName.hasSuffix(".mp4") })
+    }
+
+    func testEnumerateRecursively() async throws {
+        mockBrowser.setContents([
+            MockDirectoryBrowser.sampleVideo(name: "root.mkv", size: 1_000_000),
+            MockDirectoryBrowser.sampleFolder(name: "Action")
+        ], at: "Movies")
+
+        mockBrowser.setContents([
+            MockDirectoryBrowser.sampleVideo(name: "action1.mkv", size: 2_000_000),
+            MockDirectoryBrowser.sampleVideo(name: "action2.mp4", size: 3_000_000)
+        ], at: "Movies/Action")
+
+        let share = SavedShare(hostName: "NAS", hostAddress: "192.168.1.100", shareName: "Media")
+        try await mockBrowser.connect(to: share, credentials: nil)
+
+        let files = try await scanner.enumerateFiles(path: "Movies", using: mockBrowser)
+
+        XCTAssertEqual(files.count, 3)
+
+        // Check relative paths
+        XCTAssertTrue(files.contains { $0.relativePath == "root.mkv" })
+        XCTAssertTrue(files.contains { $0.relativePath == "Action/action1.mkv" })
+        XCTAssertTrue(files.contains { $0.relativePath == "Action/action2.mp4" })
+    }
+
+    func testEnumerateFromRoot() async throws {
+        mockBrowser.setContents([
+            MockDirectoryBrowser.sampleVideo(name: "video.mkv", size: 1_000_000),
+            MockDirectoryBrowser.sampleFolder(name: "Subfolder")
+        ], at: "")
+
+        mockBrowser.setContents([
+            MockDirectoryBrowser.sampleVideo(name: "nested.mp4", size: 2_000_000)
+        ], at: "Subfolder")
+
+        let share = SavedShare(hostName: "NAS", hostAddress: "192.168.1.100", shareName: "Media")
+        try await mockBrowser.connect(to: share, credentials: nil)
+
+        let files = try await scanner.enumerateFiles(path: "", using: mockBrowser)
+
+        XCTAssertEqual(files.count, 2)
+        XCTAssertTrue(files.contains { $0.relativePath == "video.mkv" })
+        XCTAssertTrue(files.contains { $0.relativePath == "Subfolder/nested.mp4" })
+    }
+
+    func testEnumerateIncludesFileMetadata() async throws {
+        let testDate = Date()
+        mockBrowser.setContents([
+            FileEntry(name: "movie.mkv", path: "Movies/movie.mkv", type: .file, size: 1_500_000, modifiedDate: testDate)
+        ], at: "Movies")
+
+        let share = SavedShare(hostName: "NAS", hostAddress: "192.168.1.100", shareName: "Media")
+        try await mockBrowser.connect(to: share, credentials: nil)
+
+        let files = try await scanner.enumerateFiles(path: "Movies", using: mockBrowser)
+
+        XCTAssertEqual(files.count, 1)
+        let file = files.first!
+        XCTAssertEqual(file.fileName, "movie.mkv")
+        XCTAssertEqual(file.relativePath, "movie.mkv")
+        XCTAssertEqual(file.size, 1_500_000)
+        XCTAssertEqual(file.modifiedDate, testDate)
+    }
 }

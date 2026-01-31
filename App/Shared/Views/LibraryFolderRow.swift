@@ -4,6 +4,7 @@ struct LibraryFolderRow: View {
     let folder: LibraryFolder
     let shareName: String?
     let status: ConnectionStatus
+    let missingFileCount: Int
     let onRemove: () -> Void
     let onRescan: () -> Void
 
@@ -32,10 +33,19 @@ struct LibraryFolderRow: View {
                             .foregroundStyle(.secondary)
                     }
 
+                    if missingFileCount > 0 {
+                        HStack(spacing: 4) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                            Text("\(missingFileCount) missing")
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                    }
+
                     if folder.scanError != nil {
-                        Image(systemName: "exclamationmark.triangle.fill")
+                        Image(systemName: "xmark.circle.fill")
                             .font(.caption)
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(.red)
                     }
                 }
             }
@@ -79,6 +89,9 @@ struct LibraryFolderRow: View {
         if let videoCount = folder.videoCount {
             label += ", \(videoCount) video\(videoCount == 1 ? "" : "s")"
         }
+        if missingFileCount > 0 {
+            label += ", \(missingFileCount) missing file\(missingFileCount == 1 ? "" : "s")"
+        }
         if !status.isOnline {
             label += ", \(status.displayText)"
         }
@@ -98,6 +111,7 @@ struct LibraryFolderRow: View {
             ),
             shareName: "NAS",
             status: .online,
+            missingFileCount: 0,
             onRemove: {},
             onRescan: {}
         )
@@ -112,6 +126,7 @@ struct LibraryFolderRow: View {
             ),
             shareName: "Media Server",
             status: .offline(reason: "Connection refused"),
+            missingFileCount: 3,
             onRemove: {},
             onRescan: {}
         )
@@ -126,6 +141,7 @@ struct LibraryFolderRow: View {
             ),
             shareName: "Backup Drive",
             status: .online,
+            missingFileCount: 0,
             onRemove: {},
             onRescan: {}
         )

@@ -7,6 +7,7 @@ final class LibraryViewTests: XCTestCase {
     var shareManager: ShareManager!
     var mockStorage: MockLibraryFolderStore!
     var mockScanner: MockFolderScanner!
+    var mockFileStorage: MockLibraryFileStorage!
 
     // Test shares
     var share1: SavedShare!
@@ -17,10 +18,17 @@ final class LibraryViewTests: XCTestCase {
 
         mockStorage = MockLibraryFolderStore()
         mockScanner = MockFolderScanner()
+        mockFileStorage = MockLibraryFileStorage()
 
         libraryService = LibraryService(
             storage: mockStorage,
             scanner: mockScanner,
+            scanCoordinator: LibraryScanCoordinator(
+                scanner: mockScanner,
+                fileStorage: mockFileStorage,
+                browserFactory: { MockDirectoryBrowser() }
+            ),
+            fileStorage: mockFileStorage,
             browserFactory: { MockDirectoryBrowser() }
         )
 
@@ -43,6 +51,7 @@ final class LibraryViewTests: XCTestCase {
         shareManager = nil
         mockStorage = nil
         mockScanner = nil
+        mockFileStorage = nil
         share1 = nil
         share2 = nil
         try await super.tearDown()

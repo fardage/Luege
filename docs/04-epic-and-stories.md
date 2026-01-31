@@ -341,16 +341,25 @@
 
 ---
 
-### E4-003: Scan and refresh library
-**As a** user who added new files,  
-**I want** the library to detect changes,  
+### E4-003: Scan and refresh library ✅
+**As a** user who added new files,
+**I want** the library to detect changes,
 **So that** new content appears without manual intervention.
 
 **Acceptance Criteria:**
-- [ ] Background scan on app launch
-- [ ] Manual "Refresh Library" option
-- [ ] Incremental scan (only check for changes)
-- [ ] Removed files flagged or hidden, not deleted from library DB
+- [x] Background scan on app launch
+- [x] Manual "Refresh Library" option
+- [x] Incremental scan (only check for changes)
+- [x] Removed files flagged or hidden, not deleted from library DB
+
+**Implementation Notes:**
+- `LibraryScanCoordinator` orchestrates scanning all library folders
+- `LibraryFile` model tracks individual video files with status (available/missing)
+- `LibraryFileStorage` persists per-folder file indexes as JSON
+- `FolderScanner.enumerateFiles()` returns file-level details for incremental comparison
+- Offline shares are skipped during scan (retain cached data)
+- `LibraryView` shows scanning progress banner and "Refresh" toolbar button
+- `LibraryFolderRow` displays missing file count badge when files are no longer found
 
 ---
 
