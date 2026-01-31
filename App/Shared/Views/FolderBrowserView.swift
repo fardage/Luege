@@ -10,11 +10,12 @@ struct FolderBrowserView: View {
     private let share: SavedShare
     private let shareManager: ShareManager
 
-    init(share: SavedShare, shareManager: ShareManager) {
+    init(share: SavedShare, shareManager: ShareManager, initialPath: String = "") {
         self.share = share
         self.shareManager = shareManager
         _viewModel = StateObject(wrappedValue: FolderBrowserViewModel(
             share: share,
+            initialPath: initialPath,
             credentialProvider: { [weak shareManager] in
                 try await shareManager?.credentials(for: share)
             }

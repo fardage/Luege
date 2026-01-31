@@ -143,12 +143,18 @@ final class FolderBrowserViewModel: ObservableObject {
 
     init(
         share: SavedShare,
+        initialPath: String = "",
         browser: any DirectoryBrowsing = SMBDirectoryBrowser(),
         credentialProvider: @escaping () async throws -> ShareCredentials?
     ) {
         self.share = share
         self.browser = browser
         self.credentialProvider = credentialProvider
+
+        // Parse initial path into path stack
+        if !initialPath.isEmpty {
+            self.pathStack = initialPath.split(separator: "/").map(String.init)
+        }
     }
 
     /// Connect to the share and load root directory

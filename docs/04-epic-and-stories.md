@@ -319,16 +319,25 @@
 
 ---
 
-### E4-002: Unified library view
-**As a** user with files spread across multiple shares,  
-**I want** a single "Library" view that aggregates all sources,  
+### E4-002: Unified library view ✅
+**As a** user with files spread across multiple shares,
+**I want** a single "Library" view that aggregates all sources,
 **So that** I see my full collection in one place.
 
 **Acceptance Criteria:**
-- [ ] Library tab on home screen
-- [ ] Content merged from all library folders
-- [ ] Grouped by Movies / TV Shows / Other
+- [x] Library tab on home screen
+- [x] Content merged from all library folders
+- [x] Grouped by Movies / TV Shows / Other
 - [ ] Duplicates (same title, same file) deduplicated
+
+**Implementation Notes:**
+- `LibraryView` as first tab (Library → Sources → Settings)
+- `LibraryViewModel` groups folders by `LibraryContentType`
+- `LibraryFolderRow` displays folder with content type icon, video count, status badge
+- `EmptyLibraryView` provides "Go to Sources" action
+- Navigation to `FolderBrowserView` with `initialPath` support
+- Context menu with "Remove from Library" and "Rescan Folder" actions
+- File-level deduplication deferred to E4-003 (requires full file indexing)
 
 ---
 

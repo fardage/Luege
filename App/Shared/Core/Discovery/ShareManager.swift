@@ -153,6 +153,13 @@ final class ShareManager: ObservableObject {
         try await persistenceService.credentials(for: share)
     }
 
+    /// Get a saved share by ID
+    /// - Parameter id: The UUID of the share to find
+    /// - Returns: The saved share, or nil if not found
+    func savedShare(for id: UUID) -> SavedShare? {
+        savedShares.first { $0.id == id }
+    }
+
     // MARK: - Status Management
 
     /// Refresh the connection status of a specific share
