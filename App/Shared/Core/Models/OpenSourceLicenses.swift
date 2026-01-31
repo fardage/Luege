@@ -4,7 +4,8 @@ import Foundation
 enum OpenSourceLicenses {
     static let all: [OpenSourceLicense] = [
         vlcKit,
-        amsmb2
+        amsmb2,
+        tmdb
     ]
 
     static let vlcKit = OpenSourceLicense(
@@ -47,5 +48,22 @@ enum OpenSourceLicenses {
         THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         """,
         sourceURL: "https://github.com/amosavian/AMSMB2"
+    )
+
+    static let tmdb = OpenSourceLicense(
+        name: "TMDb",
+        version: "API v3",
+        description: "Movie metadata, posters, and information provided by The Movie Database (TMDb).",
+        licenseType: "API Terms",
+        licenseText: """
+        This product uses the TMDb API but is not endorsed or certified by TMDb.
+
+        The Movie Database (TMDb) is a community-built database of movies and TV shows. Movie metadata, including titles, synopses, release dates, and artwork, is provided by TMDb.
+
+        TMDb API Terms of Use require attribution to TMDb for any data displayed from their service. Users must obtain their own API key to use this feature.
+
+        For more information about TMDb and their API terms, visit their website.
+        """,
+        sourceURL: "https://www.themoviedb.org"
     )
 }

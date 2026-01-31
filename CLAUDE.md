@@ -157,6 +157,15 @@ App/
 │   │   │   ├── KeychainService.swift
 │   │   │   ├── FileShareStorage.swift
 │   │   │   └── SavedShareStorageService.swift
+│   │   ├── Metadata/        # Movie metadata components
+│   │   │   ├── MetadataService.swift
+│   │   │   ├── TMDbService.swift
+│   │   │   ├── FilenameParser.swift
+│   │   │   ├── MetadataStorage.swift
+│   │   │   ├── ArtworkCache.swift
+│   │   │   └── Models/
+│   │   │       ├── MovieMetadata.swift
+│   │   │       └── TMDbModels.swift
 │   │   └── Playback/        # Video playback components
 │   │       ├── PlaybackState.swift
 │   │       ├── PlaybackError.swift
@@ -294,6 +303,11 @@ Types: `Implement`, `Add`, `Fix`, `Update`, `Refactor`
 - ✅ E3-002: Support common video formats
 - ✅ E3-003: Audio track selection
 - ✅ E3-004: Subtitle support
+- ✅ E4-001: Add folders to library
+- ✅ E4-002: Unified library view
+- ✅ E4-003: Scan and refresh library
+- ✅ E5-001: Auto-fetch movie metadata
 
 ### Next Stories
+- E5-002: Auto-fetch TV show metadata
 - E7-002: Playback preferences (includes default audio track, subtitle styling)

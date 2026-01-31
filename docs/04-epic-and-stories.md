@@ -365,18 +365,31 @@
 
 ## E5: Metadata & Artwork
 
-### E5-001: Auto-fetch movie metadata
-**As a** user viewing my movie library,  
-**I want** posters, titles, and descriptions fetched automatically,  
+### E5-001: Auto-fetch movie metadata ✅
+**As a** user viewing my movie library,
+**I want** posters, titles, and descriptions fetched automatically,
 **So that** the interface looks polished and informative.
 
 **Acceptance Criteria:**
-- [ ] Match files to TMDb (or similar) by filename parsing
-- [ ] Fetch: poster, backdrop, title, year, runtime, genre, synopsis
-- [ ] Display metadata in library grid and detail view
-- [ ] Cache artwork locally for fast loading
+- [x] Match files to TMDb (or similar) by filename parsing
+- [x] Fetch: poster, backdrop, title, year, runtime, genre, synopsis
+- [x] Display metadata in library grid and detail view
+- [x] Cache artwork locally for fast loading
 
-**Notes:** Use TMDb API with attribution per their terms.
+**Implementation Notes:**
+- `FilenameParser` extracts title, year, and quality from filenames using regex patterns
+- `TMDbService` interacts with TMDb API v3 for movie search and details
+- `MovieMetadata` model stores fetched metadata with match status tracking
+- `MetadataStorage` persists per-file JSON in Application Support directory
+- `ArtworkCache` downloads and caches poster/backdrop images in Caches directory
+- `MetadataService` (@MainActor) orchestrates fetching, caching, and background updates
+- `TMDbAPIKeyStorage` securely stores user-provided API key in Keychain
+- `MoviePosterCard` and `MovieGridView` display movies with cached artwork
+- `MovieDetailView` shows full movie details in a sheet
+- `MetadataSettingsView` allows API key configuration and cache management
+- TMDb attribution added to Acknowledgements per API terms
+
+**Notes:** User must provide their own TMDb API key (no bundled key for App Store compliance).
 
 ---
 

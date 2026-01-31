@@ -4,12 +4,14 @@ import SwiftUI
 struct LuegeApp: App {
     @StateObject private var shareManager = ShareManager()
     @StateObject private var libraryService = LibraryService()
+    @StateObject private var metadataService = MetadataService()
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(shareManager)
                 .environmentObject(libraryService)
+                .environmentObject(metadataService)
                 .task {
                     // Load saved shares and library folders
                     try? await shareManager.loadSavedShares()
