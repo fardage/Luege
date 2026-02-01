@@ -13,20 +13,20 @@ A serverless media player for Apple TV, iOS and iPadOS that plays content direct
 
 | Component | Library | License | Purpose |
 |-----------|---------|---------|---------|
-| Playback | TVVLCKit | LGPL 2.1 | Media decoding & playback |
-| SwiftUI VLC | VLCUI | MIT | SwiftUI wrapper for VLCKit |
+| Playback | MobileVLCKit / TVVLCKit | LGPL 2.1 | Media decoding & playback (via CocoaPods) |
 | SMB Client | AMSMB2 | LGPL 2.1 | SMB2/3 file browsing |
-| NFS Client | NFSKit | MIT | NFS file browsing |
-| Metadata | TMDb Swift | Apache 2.0 | Movie/TV metadata |
-| Persistence | CoreData | Apple | Library storage |
+| Network Discovery | Network.framework | Apple | Bonjour/mDNS share discovery |
+| Metadata | TMDb API v3 | - | Movie/TV metadata (custom TMDbService) |
+| Persistence | JSON files | - | Library storage (Application Support directory) |
+| Credentials | Security.framework | Apple | Keychain for secure credential storage |
 
 ## Decision Log
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
 | Architecture | Hybrid (Clean + Reactive) | Clean for discrete ops, reactive for continuous playback |
-| Playback engine | TVVLCKit | Best format support, LGPL compatible |
+| Playback engine | MobileVLCKit / TVVLCKit | Best format support, LGPL compatible (via CocoaPods) |
 | SMB library | AMSMB2 | Async/await, active maintenance |
-| Metadata | TMDb | Free API, comprehensive coverage |
-| Persistence | CoreData | Native, proven, type-safe |
+| Metadata | TMDb API v3 | Free API, comprehensive coverage (custom service) |
+| Persistence | JSON files | Simple, inspectable, no migration overhead |
 | License | MPL 2.0 | App Store compatible, file-level copyleft |

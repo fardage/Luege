@@ -393,39 +393,18 @@
 
 ---
 
-### E5-002: Auto-fetch TV show metadata ✅
+### E5-002: Auto-fetch TV show metadata
 **As a** user with TV series,
 **I want** episodes grouped by show and season with episode info,
 **So that** I can easily navigate series.
 
 **Acceptance Criteria:**
-- [x] Parse show name, season, episode from filename (e.g., "Show S01E03")
-- [x] Fetch series poster, episode thumbnails, episode titles
-- [x] Group episodes under Show → Season → Episode hierarchy
-- [x] Display episode synopsis and air date
+- [ ] Parse show name, season, episode from filename (e.g., "Show S01E03")
+- [ ] Fetch series poster, episode thumbnails, episode titles
+- [ ] Group episodes under Show → Season → Episode hierarchy
+- [ ] Display episode synopsis and air date
 
-**Implementation Notes:**
-- `TVShowFilenameParser` extracts show name, season, episode from filenames using multiple patterns:
-  - Standard: `Show.Name.S01E03` or `Show Name S01E03`
-  - Multi-episode: `Show.Name.S01E03-E04` or `S01E03E04`
-  - Alternative: `Show.Name.1x03`
-  - Verbose: `Show Name Season 1 Episode 3`
-- `TVShowParseResult` model contains showName, season, episode, episodeEnd (for multi-ep), quality
-- `TMDbTVModels` define API response structures for TV search, series details, season details, episodes
-- `TVShowMetadata` stores series-level info (poster, overview, seasons, status)
-- `TVSeasonMetadata` stores season info (poster, episode count, air date)
-- `TVEpisodeMetadata` stores episode info (still, title, synopsis, air date, runtime)
-- `TMDbService` extended with `searchTV()`, `fetchTVDetails()`, `fetchSeasonDetails()` methods
-- `ArtworkCache` extended with `StillSize` enum and still image caching for episode thumbnails
-- `MetadataStorage` extended with TV-specific storage (shows, seasons, episodes subdirectories)
-- `MetadataService` extended with `fetchTVEpisodeMetadata()`, caching, and TV show grouping
-- `TVShowGridView` displays series posters in a grid layout
-- `TVShowDetailView` shows series info with season list navigation
-- `SeasonView` displays episode list with thumbnails
-- `EpisodeRow` shows episode still, title, synopsis in list format
-- `EpisodeDetailView` shows full episode details in a sheet
-- `TVLibrarySection` aggregates TV content from all TV show folders
-- `LibraryView` updated with TV Shows section linking to `TVLibrarySection`
+**Notes:** Requires extending `FilenameParser` for TV show patterns (S01E03, 1x03, etc.) and adding TV-specific TMDb API calls.
 
 ---
 
