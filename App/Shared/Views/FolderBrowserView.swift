@@ -81,7 +81,6 @@ struct FolderBrowserView: View {
             VideoPlayerView(
                 video: video,
                 share: share,
-                subtitles: viewModel.subtitles(for: video),
                 credentialProvider: { [weak shareManager] in
                     try await shareManager?.credentials(for: share)
                 }

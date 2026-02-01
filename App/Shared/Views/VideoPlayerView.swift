@@ -14,13 +14,11 @@ struct VideoPlayerView: View {
     init(
         video: FileEntry,
         share: SavedShare,
-        subtitles: [FileEntry] = [],
         credentialProvider: @escaping () async throws -> ShareCredentials? = { nil }
     ) {
         _viewModel = StateObject(wrappedValue: VideoPlayerViewModel(
             video: video,
             share: share,
-            subtitles: subtitles,
             credentialProvider: credentialProvider
         ))
     }
@@ -130,7 +128,7 @@ struct VideoPlayerView: View {
         }
 
         // Controls overlay
-        if viewModel.isControlsVisible && !viewModel.isAudioTrackMenuVisible && !viewModel.isSubtitleMenuVisible {
+        if viewModel.isControlsVisible && !viewModel.isAudioTrackMenuVisible {
             VideoControlsOverlay(viewModel: viewModel)
                 .transition(.opacity)
                 .animation(.easeInOut(duration: 0.3), value: viewModel.isControlsVisible)
@@ -139,11 +137,6 @@ struct VideoPlayerView: View {
         // Audio track selection menu
         if viewModel.isAudioTrackMenuVisible {
             audioTrackMenuOverlay
-        }
-
-        // Subtitle track selection menu
-        if viewModel.isSubtitleMenuVisible {
-            subtitleMenuOverlay
         }
     }
 
@@ -172,37 +165,12 @@ struct VideoPlayerView: View {
         .animation(.easeInOut(duration: 0.2), value: viewModel.isAudioTrackMenuVisible)
     }
 
-    private var subtitleMenuOverlay: some View {
-        ZStack {
-            // Dim background
-            Color.black.opacity(0.6)
-                .ignoresSafeArea()
-                .onTapGesture {
-                    viewModel.hideSubtitleMenu()
-                }
-
-            // Menu positioned at top-right
-            VStack {
-                HStack {
-                    Spacer()
-                    SubtitleTrackSelectionView(viewModel: viewModel)
-                        .frame(maxWidth: 350, maxHeight: 400)
-                        .padding(.top, 60)
-                        .padding(.trailing, 20)
-                }
-                Spacer()
-            }
-        }
-        .transition(.opacity)
-        .animation(.easeInOut(duration: 0.2), value: viewModel.isSubtitleMenuVisible)
-    }
-
     // MARK: - Gesture Handling
 
     #if os(tvOS)
     private func handleMoveCommand(_ direction: MoveCommandDirection) {
         // If a menu is visible, ignore move commands (menu handles its own focus)
-        guard !viewModel.isAudioTrackMenuVisible && !viewModel.isSubtitleMenuVisible else { return }
+        guard !viewModel.isAudioTrackMenuVisible else { return }
 
         switch direction {
         case .left:
@@ -223,8 +191,6 @@ struct VideoPlayerView: View {
         // If a menu is visible, dismiss it first
         if viewModel.isAudioTrackMenuVisible {
             viewModel.hideAudioTrackMenu()
-        } else if viewModel.isSubtitleMenuVisible {
-            viewModel.hideSubtitleMenu()
         } else {
             dismiss()
         }
@@ -234,7 +200,7 @@ struct VideoPlayerView: View {
     #if os(iOS)
     private func handleSwipeGesture(_ value: DragGesture.Value) {
         // Don't handle swipes if a menu is visible
-        guard !viewModel.isAudioTrackMenuVisible && !viewModel.isSubtitleMenuVisible else { return }
+        guard !viewModel.isAudioTrackMenuVisible else { return }
 
         let horizontalDistance = value.translation.width
         let verticalDistance = value.translation.height

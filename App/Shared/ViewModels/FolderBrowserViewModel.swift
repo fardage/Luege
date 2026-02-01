@@ -8,12 +8,6 @@ final class FolderBrowserViewModel: ObservableObject {
     @Published private(set) var pathStack: [String] = []
     @Published var showAllFiles = false
 
-    /// Subtitles found in subtitle subfolders (sub, subs, Subs, Subtitles)
-    @Published private(set) var subfolderSubtitles: [FileEntry] = []
-
-    /// Common subtitle subfolder names to scan
-    private static let subtitleFolderNames: Set<String> = ["sub", "subs", "subtitles"]
-
     /// Paths that are library folders (for badge display)
     @Published private(set) var libraryFolderPaths: Set<String> = []
 
@@ -40,40 +34,8 @@ final class FolderBrowserViewModel: ObservableObject {
         !pathStack.isEmpty
     }
 
-    /// Subtitle associations mapping video base names to subtitle entries
-    /// Includes subtitles from both the current directory and subtitle subfolders
-    var subtitleAssociations: [String: [FileEntry]] {
-        var associations: [String: [FileEntry]] = [:]
-        let videos = entries.filter { $0.isVideoFile }
-
-        // Combine subtitles from current directory and subfolders
-        let allSubtitles = entries.filter { $0.isSubtitleFile } + subfolderSubtitles
-
-        for subtitle in allSubtitles {
-            let subtitleBase = subtitle.baseFileName
-
-            // Try to find matching video by checking if video base name matches
-            // This handles cases like:
-            // - "movie.srt" matches "movie.mkv"
-            // - "movie.en.srt" matches "movie.mkv" (language suffix)
-            for video in videos {
-                let videoBase = video.baseFileName
-                // Check if subtitle base starts with video base
-                // or if they match exactly
-                if subtitleBase == videoBase || subtitleBase.hasPrefix(videoBase + ".") {
-                    associations[videoBase, default: []].append(subtitle)
-                    break
-                }
-            }
-        }
-
-        return associations
-    }
-
     /// Filtered and sorted entries based on showAllFiles toggle
     var filteredEntries: [FileEntry] {
-        let videoBaseNames = Set(entries.filter { $0.isVideoFile }.map { $0.baseFileName })
-
         let filtered = entries.filter { entry in
             // Always show folders
             if entry.isFolder {
@@ -83,19 +45,6 @@ final class FolderBrowserViewModel: ObservableObject {
             // Always show videos
             if entry.isVideoFile {
                 return true
-            }
-
-            // Hide subtitle files that have a matching video
-            if entry.isSubtitleFile {
-                let subtitleBase = entry.baseFileName
-                // Check if this subtitle matches any video
-                for videoBase in videoBaseNames {
-                    if subtitleBase == videoBase || subtitleBase.hasPrefix(videoBase + ".") {
-                        return false
-                    }
-                }
-                // Orphan subtitle: show only if showAllFiles is true
-                return showAllFiles
             }
 
             // Other files: show only if showAllFiles is true
@@ -114,12 +63,6 @@ final class FolderBrowserViewModel: ObservableObject {
     /// Entries sorted with folders first, then alphabetically (deprecated, use filteredEntries)
     var sortedEntries: [FileEntry] {
         filteredEntries
-    }
-
-    /// Get subtitle files associated with a video
-    func subtitles(for video: FileEntry) -> [FileEntry] {
-        guard video.isVideoFile else { return [] }
-        return subtitleAssociations[video.baseFileName] ?? []
     }
 
     /// Check if a folder entry is in the library
@@ -218,14 +161,9 @@ final class FolderBrowserViewModel: ObservableObject {
     private func loadCurrentDirectory() async {
         isLoading = true
         error = nil
-        subfolderSubtitles = []
 
         do {
             entries = try await browser.listDirectory(at: currentPath)
-
-            // Scan subtitle subfolders for additional subtitles
-            await loadSubtitleSubfolders()
-
             isLoading = false
         } catch let browsingError as BrowsingError {
             error = browsingError
@@ -234,34 +172,6 @@ final class FolderBrowserViewModel: ObservableObject {
             self.error = .unknown(error.localizedDescription)
             isLoading = false
         }
-    }
-
-    /// Scan common subtitle subfolders (sub, subs, Subtitles) for subtitle files
-    private func loadSubtitleSubfolders() async {
-        // Find subtitle folders in current directory
-        let subtitleFolders = entries.filter { entry in
-            entry.isFolder && Self.subtitleFolderNames.contains(entry.name.lowercased())
-        }
-
-        guard !subtitleFolders.isEmpty else { return }
-
-        var foundSubtitles: [FileEntry] = []
-
-        for folder in subtitleFolders {
-            let folderPath = currentPath.isEmpty ? folder.name : "\(currentPath)/\(folder.name)"
-
-            do {
-                let folderContents = try await browser.listDirectory(at: folderPath)
-                let subtitles = folderContents.filter { $0.isSubtitleFile }
-                foundSubtitles.append(contentsOf: subtitles)
-                print("[FolderBrowserVM] Found \(subtitles.count) subtitles in \(folder.name)/")
-            } catch {
-                // Silently ignore errors when scanning subtitle folders
-                print("[FolderBrowserVM] Could not scan subtitle folder \(folder.name): \(error)")
-            }
-        }
-
-        subfolderSubtitles = foundSubtitles
     }
 }
 

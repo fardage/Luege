@@ -55,22 +55,6 @@ struct FileEntry: Identifiable, Sendable, Equatable {
         return Self.videoExtensions.contains(fileExtension)
     }
 
-    /// Subtitle file extensions supported by the app
-    static let subtitleExtensions: Set<String> = [
-        "srt", "ass", "sub", "ssa", "idx", "vtt"
-    ]
-
-    /// Whether this is a subtitle file
-    var isSubtitleFile: Bool {
-        guard type == .file else { return false }
-        return Self.subtitleExtensions.contains(fileExtension)
-    }
-
-    /// Filename without extension (for subtitle matching)
-    var baseFileName: String {
-        (name as NSString).deletingPathExtension
-    }
-
     /// Human-readable file size
     var formattedSize: String? {
         guard let size = size, type == .file else { return nil }

@@ -44,40 +44,12 @@ struct VideoControlsOverlay: View {
 
             Spacer()
 
-            // Subtitle button (only show if tracks available)
-            if viewModel.hasSubtitleTracks {
-                subtitleButton
-            }
-
             // Audio track button (only show if multiple tracks)
             if viewModel.hasMultipleAudioTracks {
                 audioTrackButton
             }
         }
         .padding()
-    }
-
-    private var subtitleButton: some View {
-        Button {
-            viewModel.showSubtitleMenu()
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: "text.bubble.fill")
-                    .font(.subheadline)
-
-                Text(viewModel.selectedSubtitleTrackName)
-                    .font(.subheadline)
-                    .lineLimit(1)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(.ultraThinMaterial, in: Capsule())
-            .foregroundStyle(.white)
-        }
-        .buttonStyle(.plain)
-        #if os(tvOS)
-        .focusable()
-        #endif
     }
 
     private var audioTrackButton: some View {
