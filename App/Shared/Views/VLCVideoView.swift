@@ -15,6 +15,7 @@ struct VLCVideoView: UIViewRepresentable {
     func makeUIView(context: Context) -> UIView {
         let view = UIView()
         view.backgroundColor = .black
+        view.isUserInteractionEnabled = false  // Allow taps to pass through to SwiftUI
         mediaPlayer.drawable = view
         return view
     }

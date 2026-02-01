@@ -17,6 +17,9 @@ final class VideoPlayerViewModel: ObservableObject {
     @Published private(set) var isControlsVisible = true
     @Published private(set) var loadingProgress: Double = 0
 
+    /// Indicates if playback is truly stalled (buffering with no time progress)
+    @Published private(set) var isStalled = false
+
     // Audio track selection
     @Published private(set) var audioTracks: [AudioTrack] = []
     @Published private(set) var selectedAudioTrackIndex: Int?
@@ -52,6 +55,11 @@ final class VideoPlayerViewModel: ObservableObject {
 
     private let controlsHideDelay: TimeInterval = 4.0
     private var controlsHideTask: Task<Void, Never>?
+
+    // Stall detection
+    private var lastTimeUpdate: Date = .now
+    private var lastKnownTime: TimeInterval = 0
+    private var stallCheckTask: Task<Void, Never>?
 
     // MARK: - Computed Properties
 
@@ -395,7 +403,8 @@ final class VideoPlayerViewModel: ObservableObject {
     }
 
     func hideControls() {
-        guard state == .playing else { return }
+        // Allow hiding during both playing and buffering (buffering is a sub-state of active playback)
+        guard state == .playing || state == .buffering else { return }
         isControlsVisible = false
     }
 
@@ -411,10 +420,37 @@ final class VideoPlayerViewModel: ObservableObject {
         controlsHideTask?.cancel()
         controlsHideTask = Task {
             try? await Task.sleep(for: .seconds(controlsHideDelay))
-            if !Task.isCancelled && state == .playing {
+            if !Task.isCancelled && (state == .playing || state == .buffering) {
                 hideControls()
             }
         }
+    }
+
+    // MARK: - Stall Detection
+
+    private func startStallDetection() {
+        stallCheckTask?.cancel()
+
+        // Only detect stalls during playback (not initial loading)
+        guard duration > 0 else {
+            // During initial loading, show stalled immediately
+            isStalled = true
+            return
+        }
+
+        // Wait a short period before marking as stalled to filter transient buffering
+        stallCheckTask = Task {
+            try? await Task.sleep(for: .milliseconds(500))
+            if !Task.isCancelled && state == .buffering {
+                isStalled = true
+            }
+        }
+    }
+
+    private func clearStallState() {
+        stallCheckTask?.cancel()
+        stallCheckTask = nil
+        isStalled = false
     }
 
     // MARK: - Engine Callbacks
@@ -425,15 +461,29 @@ final class VideoPlayerViewModel: ObservableObject {
             // Handle buffering state from engine
             if case .buffering = newState, self.state == .playing {
                 self.state = .buffering
+                self.startStallDetection()
             } else if case .playing = newState, self.state == .buffering {
                 self.state = .playing
+                self.clearStallState()
+                self.scheduleControlsHide()
             } else if case .error(let error) = newState {
                 self.state = .error(error)
+                self.clearStallState()
             }
         }
 
         engine.onTimeUpdate = { [weak self] time in
-            self?.currentTime = time
+            guard let self = self else { return }
+            // Track time progression for stall detection
+            if time != self.lastKnownTime {
+                self.lastKnownTime = time
+                self.lastTimeUpdate = .now
+                // If time is progressing, we're not stalled
+                if self.isStalled {
+                    self.isStalled = false
+                }
+            }
+            self.currentTime = time
         }
 
         engine.onDurationChange = { [weak self] duration in

@@ -121,11 +121,12 @@ struct VideoPlayerView: View {
 
     @ViewBuilder
     private var playbackOverlay: some View {
-        // Buffering indicator
-        if viewModel.state == .buffering {
+        // Buffering indicator - show when truly stalled (initial load or playback stall)
+        if viewModel.isStalled && !viewModel.isControlsVisible {
             ProgressView()
                 .scaleEffect(1.5)
                 .tint(.white)
+                .allowsHitTesting(false)
         }
 
         // Controls overlay
