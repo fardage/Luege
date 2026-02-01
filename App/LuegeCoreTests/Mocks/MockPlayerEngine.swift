@@ -15,9 +15,13 @@ final class MockPlayerEngine: PlayerEngine {
     var onDurationChange: ((TimeInterval) -> Void)?
     var onAudioTracksAvailable: (([AudioTrack]) -> Void)?
     var onAudioTrackChanged: ((Int?) -> Void)?
+    var onSubtitleTracksAvailable: (([SubtitleTrack]) -> Void)?
+    var onSubtitleTrackChanged: ((Int?) -> Void)?
 
     var audioTracks: [AudioTrack] = []
     var selectedAudioTrackIndex: Int?
+    var subtitleTracks: [SubtitleTrack] = []
+    var selectedSubtitleTrackIndex: Int?
 
     // MARK: - Mock Tracking
 
@@ -33,12 +37,17 @@ final class MockPlayerEngine: PlayerEngine {
     var stopCalled = false
     var selectAudioTrackCalled = false
     var selectAudioTrackIndex: Int?
+    var selectSubtitleTrackCalled = false
+    var selectSubtitleTrackIndex: Int?
+    var addExternalSubtitleCalled = false
+    var addExternalSubtitlePaths: [String] = []
 
     var shouldFailPrepare = false
     var prepareError: PlaybackError = .playbackFailed("Mock error")
 
     // Mock audio tracks to return after prepare
     var mockAudioTracks: [AudioTrack] = []
+    var mockSubtitleTracks: [SubtitleTrack] = []
 
     // MARK: - PlayerEngine Protocol Methods
 
@@ -67,6 +76,11 @@ final class MockPlayerEngine: PlayerEngine {
         // Simulate audio tracks becoming available
         if !mockAudioTracks.isEmpty {
             simulateAudioTracksAvailable(mockAudioTracks)
+        }
+
+        // Simulate subtitle tracks becoming available
+        if !mockSubtitleTracks.isEmpty {
+            simulateSubtitleTracksAvailable(mockSubtitleTracks)
         }
     }
 
@@ -98,6 +112,8 @@ final class MockPlayerEngine: PlayerEngine {
         duration = 0
         audioTracks = []
         selectedAudioTrackIndex = nil
+        subtitleTracks = []
+        selectedSubtitleTrackIndex = nil
         onStateChange?(state)
     }
 
@@ -108,6 +124,24 @@ final class MockPlayerEngine: PlayerEngine {
         guard index >= 0 && index < audioTracks.count else { return }
         selectedAudioTrackIndex = index
         onAudioTrackChanged?(index)
+    }
+
+    func selectSubtitleTrack(at index: Int?) async {
+        selectSubtitleTrackCalled = true
+        selectSubtitleTrackIndex = index
+
+        if let index = index {
+            guard index >= 0 && index < subtitleTracks.count else { return }
+            selectedSubtitleTrackIndex = index
+        } else {
+            selectedSubtitleTrackIndex = nil
+        }
+        onSubtitleTrackChanged?(selectedSubtitleTrackIndex)
+    }
+
+    func addExternalSubtitle(share: SavedShare, path: String, credentials: ShareCredentials?) async {
+        addExternalSubtitleCalled = true
+        addExternalSubtitlePaths.append(path)
     }
 
     // MARK: - Mock Helpers
@@ -134,6 +168,14 @@ final class MockPlayerEngine: PlayerEngine {
         onAudioTrackChanged?(selectedAudioTrackIndex)
     }
 
+    func simulateSubtitleTracksAvailable(_ tracks: [SubtitleTrack]) {
+        subtitleTracks = tracks
+        // Subtitles default to off
+        selectedSubtitleTrackIndex = nil
+        onSubtitleTracksAvailable?(tracks)
+        onSubtitleTrackChanged?(selectedSubtitleTrackIndex)
+    }
+
     func reset() {
         state = .idle
         currentTime = 0
@@ -156,5 +198,12 @@ final class MockPlayerEngine: PlayerEngine {
         audioTracks = []
         selectedAudioTrackIndex = nil
         mockAudioTracks = []
+        subtitleTracks = []
+        selectedSubtitleTrackIndex = nil
+        mockSubtitleTracks = []
+        selectSubtitleTrackCalled = false
+        selectSubtitleTrackIndex = nil
+        addExternalSubtitleCalled = false
+        addExternalSubtitlePaths = []
     }
 }

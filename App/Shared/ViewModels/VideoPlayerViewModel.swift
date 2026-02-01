@@ -25,6 +25,11 @@ final class VideoPlayerViewModel: ObservableObject {
     @Published private(set) var selectedAudioTrackIndex: Int?
     @Published var isAudioTrackMenuVisible = false
 
+    // Subtitle track selection
+    @Published private(set) var subtitleTracks: [SubtitleTrack] = []
+    @Published private(set) var selectedSubtitleTrackIndex: Int?
+    @Published var isSubtitleMenuVisible = false
+
     // MARK: - Player Engine
 
     private var engine: (any PlayerEngine)?
@@ -41,6 +46,7 @@ final class VideoPlayerViewModel: ObservableObject {
     private let video: FileEntry
     private let share: SavedShare
     private let credentialProvider: () async throws -> ShareCredentials?
+    private let directoryBrowser: DirectoryBrowsing?
 
     private let controlsHideDelay: TimeInterval = 4.0
     private var controlsHideTask: Task<Void, Never>?
@@ -87,16 +93,36 @@ final class VideoPlayerViewModel: ObservableObject {
         return audioTracks[index].displayName
     }
 
+    /// Whether subtitle tracks are available for selection
+    var hasSubtitleTracks: Bool {
+        !subtitleTracks.isEmpty
+    }
+
+    /// Display name for the currently selected subtitle track
+    var selectedSubtitleName: String {
+        guard let index = selectedSubtitleTrackIndex, index < subtitleTracks.count else {
+            return "Off"
+        }
+        return subtitleTracks[index].displayName
+    }
+
+    /// Whether subtitles are currently enabled
+    var areSubtitlesEnabled: Bool {
+        selectedSubtitleTrackIndex != nil
+    }
+
     // MARK: - Initialization
 
     init(
         video: FileEntry,
         share: SavedShare,
-        credentialProvider: @escaping () async throws -> ShareCredentials? = { nil }
+        credentialProvider: @escaping () async throws -> ShareCredentials? = { nil },
+        directoryBrowser: DirectoryBrowsing? = nil
     ) {
         self.video = video
         self.share = share
         self.credentialProvider = credentialProvider
+        self.directoryBrowser = directoryBrowser
     }
 
     deinit {
@@ -134,10 +160,67 @@ final class VideoPlayerViewModel: ObservableObject {
 
             state = .ready
             print("[VideoPlayerVM] State: ready")
+
+            // Scan for and load external subtitles in a detached task
+            // This prevents SwiftUI task cancellation from interrupting the scan
+            let videoInfo = (path: video.path, name: video.name)
+            let shareInfo = share
+            let browser = directoryBrowser
+            let engine = playerEngine
+            Task.detached { [weak self] in
+                await self?.loadExternalSubtitlesDetached(
+                    engine: engine,
+                    credentials: credentials,
+                    videoPath: videoInfo.path,
+                    videoName: videoInfo.name,
+                    share: shareInfo,
+                    browser: browser
+                )
+            }
         } catch {
             print("[VideoPlayerVM] Error: \(error)")
             let playbackError = error as? PlaybackError ?? .playbackFailed(error.localizedDescription)
             state = .error(playbackError)
+        }
+    }
+
+    /// Scans the video's directory for external subtitle files and loads them (detached version)
+    private func loadExternalSubtitlesDetached(
+        engine: any PlayerEngine,
+        credentials: ShareCredentials?,
+        videoPath: String,
+        videoName: String,
+        share: SavedShare,
+        browser: DirectoryBrowsing?
+    ) async {
+        guard let browser = browser else { return }
+
+        // Get the directory containing the video
+        let videoDirectory = (videoPath as NSString).deletingLastPathComponent
+
+        do {
+            // Connect and list the directory
+            try await browser.connect(to: share, credentials: credentials)
+            let files = try await browser.listDirectory(at: videoDirectory)
+
+            // Find matching subtitle files
+            let subtitleFiles = ExternalSubtitleScanner.findSubtitles(
+                forVideo: videoName,
+                inDirectory: files
+            )
+
+            // Add each external subtitle to the player
+            for subtitleFile in subtitleFiles {
+                await engine.addExternalSubtitle(
+                    share: share,
+                    path: subtitleFile.path,
+                    credentials: credentials
+                )
+            }
+
+            await browser.disconnect()
+        } catch {
+            // Non-fatal - continue without external subtitles
         }
     }
 
@@ -197,6 +280,9 @@ final class VideoPlayerViewModel: ObservableObject {
         audioTracks = []
         selectedAudioTrackIndex = nil
         isAudioTrackMenuVisible = false
+        subtitleTracks = []
+        selectedSubtitleTrackIndex = nil
+        isSubtitleMenuVisible = false
     }
 
     // MARK: - Audio Track Selection
@@ -216,6 +302,35 @@ final class VideoPlayerViewModel: ObservableObject {
 
     func hideAudioTrackMenu() {
         isAudioTrackMenuVisible = false
+        scheduleControlsHide()
+    }
+
+    // MARK: - Subtitle Track Selection
+
+    func selectSubtitleTrack(at index: Int?) {
+        Task {
+            await engine?.selectSubtitleTrack(at: index)
+        }
+    }
+
+    func toggleSubtitles() {
+        if areSubtitlesEnabled {
+            // Turn off subtitles
+            selectSubtitleTrack(at: nil)
+        } else if !subtitleTracks.isEmpty {
+            // Turn on first subtitle track
+            selectSubtitleTrack(at: 0)
+        }
+    }
+
+    func showSubtitleMenu() {
+        guard hasSubtitleTracks else { return }
+        isSubtitleMenuVisible = true
+        controlsHideTask?.cancel()
+    }
+
+    func hideSubtitleMenu() {
+        isSubtitleMenuVisible = false
         scheduleControlsHide()
     }
 
@@ -320,6 +435,14 @@ final class VideoPlayerViewModel: ObservableObject {
 
         engine.onAudioTrackChanged = { [weak self] index in
             self?.selectedAudioTrackIndex = index
+        }
+
+        engine.onSubtitleTracksAvailable = { [weak self] tracks in
+            self?.subtitleTracks = tracks
+        }
+
+        engine.onSubtitleTrackChanged = { [weak self] index in
+            self?.selectedSubtitleTrackIndex = index
         }
     }
 

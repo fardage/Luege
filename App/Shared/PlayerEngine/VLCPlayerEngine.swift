@@ -22,9 +22,13 @@ final class VLCPlayerEngine: NSObject, PlayerEngine {
     var onDurationChange: ((TimeInterval) -> Void)?
     var onAudioTracksAvailable: (([AudioTrack]) -> Void)?
     var onAudioTrackChanged: ((Int?) -> Void)?
+    var onSubtitleTracksAvailable: (([SubtitleTrack]) -> Void)?
+    var onSubtitleTrackChanged: ((Int?) -> Void)?
 
     private(set) var audioTracks: [AudioTrack] = []
     private(set) var selectedAudioTrackIndex: Int?
+    private(set) var subtitleTracks: [SubtitleTrack] = []
+    private(set) var selectedSubtitleTrackIndex: Int?
 
     // MARK: - Access for UI
 
@@ -36,6 +40,8 @@ final class VLCPlayerEngine: NSObject, PlayerEngine {
     private var media: VLCMedia?
     private var timeUpdateTimer: Timer?
     private var audioTracksLoaded = false
+    private var subtitleTracksLoaded = false
+    private var externalSubtitlePaths: [String] = []  // Paths of added external subtitles
 
     // MARK: - Initialization
 
@@ -130,6 +136,52 @@ final class VLCPlayerEngine: NSObject, PlayerEngine {
         print("[VLCPlayerEngine] Selected audio track: \(index) (VLC index: \(vlcTrackIndex)) - \(audioTracks[index].displayName)")
     }
 
+    func selectSubtitleTrack(at index: Int?) async {
+        guard let player = mediaPlayer else { return }
+
+        if let index = index {
+            // Select a subtitle track
+            guard index >= 0 && index < subtitleTracks.count else { return }
+
+            // Use the stored VLC index from the track
+            let track = subtitleTracks[index]
+            player.currentVideoSubTitleIndex = track.vlcIndex
+            selectedSubtitleTrackIndex = index
+            onSubtitleTrackChanged?(index)
+        } else {
+            // Disable subtitles
+            player.currentVideoSubTitleIndex = -1
+            selectedSubtitleTrackIndex = nil
+            onSubtitleTrackChanged?(nil)
+        }
+    }
+
+    func addExternalSubtitle(share: SavedShare, path: String, credentials: ShareCredentials?) async {
+        guard let player = mediaPlayer else { return }
+
+        // Build SMB URL for the subtitle file
+        guard let subtitleURL = buildSMBURL(share: share, path: path, credentials: credentials) else {
+            return
+        }
+
+        // Add the subtitle file as a playback slave
+        player.addPlaybackSlave(subtitleURL, type: .subtitle, enforce: false)
+
+        // Track that we added this external subtitle
+        externalSubtitlePaths.append(path)
+
+        // Reset subtitle loading flag so tracks get reloaded
+        subtitleTracksLoaded = false
+
+        // Try to reload tracks - VLC needs playback to be active
+        // Retry a few times with delays until tracks are available
+        for _ in 1...5 {
+            try? await Task.sleep(nanoseconds: 500_000_000)  // 500ms
+            loadSubtitleTracks()
+            if !subtitleTracks.isEmpty { break }
+        }
+    }
+
     // MARK: - Private Methods
 
     private func updateState(_ newState: PlaybackState) {
@@ -197,6 +249,10 @@ final class VLCPlayerEngine: NSObject, PlayerEngine {
         audioTracks = []
         selectedAudioTrackIndex = nil
         audioTracksLoaded = false
+        subtitleTracks = []
+        selectedSubtitleTrackIndex = nil
+        subtitleTracksLoaded = false
+        externalSubtitlePaths = []
     }
 
     private func loadAudioTracks() {
@@ -243,6 +299,80 @@ final class VLCPlayerEngine: NSObject, PlayerEngine {
 
         onAudioTracksAvailable?(tracks)
         onAudioTrackChanged?(selectedAudioTrackIndex)
+    }
+
+    private func loadSubtitleTracks() {
+        guard let player = mediaPlayer, !subtitleTracksLoaded else { return }
+
+        // VLCKit provides track names and indexes as parallel arrays
+        guard let trackNames = player.videoSubTitlesNames as? [String],
+              let trackIndexes = player.videoSubTitlesIndexes as? [Int32] else {
+            return
+        }
+
+        // Filter out the "Disable" track (usually index -1)
+        var tracks: [SubtitleTrack] = []
+        for (name, vlcIndex) in zip(trackNames, trackIndexes) {
+            // Skip the "Disable" option (typically has negative index)
+            if vlcIndex < 0 { continue }
+
+            let track = createSubtitleTrack(from: name, at: tracks.count, vlcIndex: vlcIndex)
+            tracks.append(track)
+        }
+
+        if tracks.isEmpty {
+            // Only mark as loaded if we don't have external subtitles pending
+            if externalSubtitlePaths.isEmpty {
+                subtitleTracksLoaded = true
+            }
+            onSubtitleTracksAvailable?([])
+            return
+        }
+
+        subtitleTracks = tracks
+        subtitleTracksLoaded = true
+
+        // Determine currently selected track
+        let currentVLCIndex = player.currentVideoSubTitleIndex
+        if currentVLCIndex < 0 {
+            selectedSubtitleTrackIndex = nil
+        } else {
+            selectedSubtitleTrackIndex = trackIndexes.firstIndex(of: currentVLCIndex).map { idx in
+                // Adjust for the disabled track we filtered out
+                let disabledCount = trackIndexes.prefix(idx).filter { $0 < 0 }.count
+                return idx - disabledCount
+            }
+        }
+
+        onSubtitleTracksAvailable?(tracks)
+        onSubtitleTrackChanged?(selectedSubtitleTrackIndex)
+    }
+
+    private func createSubtitleTrack(from name: String, at index: Int, vlcIndex: Int32) -> SubtitleTrack {
+        // VLC track names are typically in format: "Track N - Language" or just "Language"
+        var languageName: String? = nil
+        var languageCode: String? = nil
+
+        // Use the name (cleaned up) as the language name
+        var cleanName = name
+        // Remove "Track N - " prefix
+        if let prefixRange = cleanName.range(of: "^Track\\s+\\d+\\s*-?\\s*", options: .regularExpression) {
+            cleanName.removeSubrange(prefixRange)
+        }
+        cleanName = cleanName.trimmingCharacters(in: .whitespaces)
+
+        if !cleanName.isEmpty && cleanName.lowercased() != "unknown" && cleanName.lowercased() != "disable" {
+            languageName = cleanName
+        }
+
+        return SubtitleTrack(
+            id: "vlc-subtitle-\(vlcIndex)",
+            index: index,
+            vlcIndex: vlcIndex,
+            languageCode: languageCode,
+            languageName: languageName,
+            isDefault: index == 0
+        )
     }
 
     private func createAudioTrack(from name: String, at index: Int, vlcIndex: Int32) -> AudioTrack {
@@ -332,8 +462,9 @@ extension VLCPlayerEngine: VLCMediaPlayerDelegate {
             updateState(.buffering)
         case .playing:
             updateState(.playing)
-            // Load audio tracks once playback starts
+            // Load tracks once playback starts
             loadAudioTracks()
+            loadSubtitleTracks()
         case .paused:
             updateState(.paused)
         case .ended:
@@ -344,6 +475,7 @@ extension VLCPlayerEngine: VLCMediaPlayerDelegate {
         case .esAdded:
             // Elementary stream added - good time to try loading tracks
             loadAudioTracks()
+            loadSubtitleTracks()
         @unknown default:
             break
         }

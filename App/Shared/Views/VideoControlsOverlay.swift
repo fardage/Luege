@@ -44,12 +44,33 @@ struct VideoControlsOverlay: View {
 
             Spacer()
 
+            // Subtitle button (only show if tracks available)
+            if viewModel.hasSubtitleTracks {
+                subtitleButton
+            }
+
             // Audio track button (only show if multiple tracks)
             if viewModel.hasMultipleAudioTracks {
                 audioTrackButton
             }
         }
         .padding()
+    }
+
+    private var subtitleButton: some View {
+        Button {
+            viewModel.showSubtitleMenu()
+        } label: {
+            Image(systemName: viewModel.areSubtitlesEnabled ? "captions.bubble.fill" : "captions.bubble")
+                .font(.title2)
+                .foregroundStyle(.white)
+                .padding(8)
+                .background(.ultraThinMaterial, in: Circle())
+        }
+        .buttonStyle(.plain)
+        #if os(tvOS)
+        .focusable()
+        #endif
     }
 
     private var audioTrackButton: some View {
