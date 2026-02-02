@@ -49,8 +49,8 @@ struct LibraryFolderRow: View {
                 }
             }
             #if os(tvOS)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
+            .padding(.horizontal, 40)
+            .padding(.vertical, 20)
             #endif
             .contentShape(Rectangle())
         }
@@ -101,7 +101,7 @@ struct LibraryFolderRow: View {
 
     private var rowSpacing: CGFloat {
         #if os(tvOS)
-        return 28
+        return 24
         #else
         return 12
         #endif
