@@ -24,6 +24,9 @@ struct FileEntryRow: View {
                             .offset(x: libraryBadgeOffset, y: libraryBadgeOffset)
                     }
                 }
+                #if os(tvOS)
+                .padding(.trailing, 12)
+                #endif
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(entry.name)
@@ -46,8 +49,8 @@ struct FileEntryRow: View {
                 }
             }
             #if os(tvOS)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
+            .padding(.horizontal, 40)
+            .padding(.vertical, 20)
             #endif
             .contentShape(Rectangle())
         }
@@ -135,7 +138,7 @@ struct FileEntryRow: View {
 
     private var rowSpacing: CGFloat {
         #if os(tvOS)
-        return 20
+        return 24
         #else
         return 12
         #endif

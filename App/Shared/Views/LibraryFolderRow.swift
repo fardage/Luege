@@ -15,6 +15,9 @@ struct LibraryFolderRow: View {
                     .font(iconFont)
                     .foregroundStyle(status.isOnline ? .primary : .secondary)
                     .frame(width: iconWidth)
+                    #if os(tvOS)
+                    .padding(.trailing, 12)
+                    #endif
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(folder.displayName)
