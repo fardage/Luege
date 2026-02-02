@@ -48,11 +48,12 @@ struct FolderBrowserView: View {
                             await viewModel.refresh()
                         }
                     } label: {
+                        #if os(tvOS)
+                        Image(systemName: "arrow.clockwise")
+                        #else
                         Label("Refresh", systemImage: "arrow.clockwise")
+                        #endif
                     }
-                    #if os(tvOS)
-                    .labelStyle(.iconOnly)
-                    #endif
                 }
             }
 
@@ -60,14 +61,15 @@ struct FolderBrowserView: View {
                 Button {
                     viewModel.showAllFiles.toggle()
                 } label: {
+                    #if os(tvOS)
+                    Image(systemName: viewModel.showAllFiles ? "film" : "doc.on.doc")
+                    #else
                     Label(
                         viewModel.showAllFiles ? "Show Videos Only" : "Show All Files",
                         systemImage: viewModel.showAllFiles ? "film" : "doc.on.doc"
                     )
+                    #endif
                 }
-                #if os(tvOS)
-                .labelStyle(.iconOnly)
-                #endif
             }
         }
         .task {

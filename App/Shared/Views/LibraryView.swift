@@ -25,12 +25,13 @@ struct LibraryView: View {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button(action: refreshLibrary) {
+                        #if os(tvOS)
+                        Image(systemName: "arrow.clockwise")
+                        #else
                         Label("Refresh", systemImage: "arrow.clockwise")
+                        #endif
                     }
                     .disabled(libraryService.isScanning || libraryService.libraryFolders.isEmpty)
-                    #if os(tvOS)
-                    .labelStyle(.iconOnly)
-                    #endif
                 }
             }
             .overlay(alignment: .bottom) {

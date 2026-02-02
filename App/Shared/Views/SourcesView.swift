@@ -34,11 +34,12 @@ struct SourcesView: View {
                     Button {
                         isShowingAddSheet = true
                     } label: {
+                        #if os(tvOS)
+                        Image(systemName: "plus")
+                        #else
                         Label("Add", systemImage: "plus")
+                        #endif
                     }
-                    #if os(tvOS)
-                    .labelStyle(.iconOnly)
-                    #endif
                 }
             }
             .sheet(isPresented: $isShowingAddSheet) {

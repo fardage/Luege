@@ -23,8 +23,10 @@ struct AddToLibrarySheet: View {
     var body: some View {
         NavigationStack {
             formContent
+                #if os(tvOS)
+                .navigationTitle("Add Folder")
+                #else
                 .navigationTitle("Add to Library")
-                #if os(iOS)
                 .navigationBarTitleDisplayMode(.inline)
                 #endif
                 .toolbar {

@@ -38,12 +38,13 @@ struct MovieLibraryFolderView: View {
                         await rescanFolder()
                     }
                 } label: {
+                    #if os(tvOS)
+                    Image(systemName: "arrow.clockwise")
+                    #else
                     Label("Refresh", systemImage: "arrow.clockwise")
+                    #endif
                 }
                 .disabled(isScanning)
-                #if os(tvOS)
-                .labelStyle(.iconOnly)
-                #endif
             }
         }
         .task {

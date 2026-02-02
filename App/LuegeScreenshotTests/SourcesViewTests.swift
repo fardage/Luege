@@ -17,7 +17,11 @@ final class SourcesViewTests: SnapshotTestCase {
                 .toolbar {
                     ToolbarItem(placement: .primaryAction) {
                         Button {} label: {
+                            #if os(tvOS)
+                            Image(systemName: "plus")
+                            #else
                             Label("Add", systemImage: "plus")
+                            #endif
                         }
                     }
                 }
@@ -52,7 +56,11 @@ final class SourcesViewTests: SnapshotTestCase {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {} label: {
+                        #if os(tvOS)
+                        Image(systemName: "plus")
+                        #else
                         Label("Add", systemImage: "plus")
+                        #endif
                     }
                 }
             }
@@ -84,7 +92,11 @@ final class SourcesViewTests: SnapshotTestCase {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {} label: {
+                        #if os(tvOS)
+                        Image(systemName: "plus")
+                        #else
                         Label("Add", systemImage: "plus")
+                        #endif
                     }
                 }
             }
@@ -152,7 +164,11 @@ final class SourcesViewTests: SnapshotTestCase {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {} label: {
+                        #if os(tvOS)
+                        Image(systemName: "plus")
+                        #else
                         Label("Add", systemImage: "plus")
+                        #endif
                     }
                 }
             }
