@@ -39,9 +39,15 @@ struct LibraryView: View {
             .animation(.easeInOut(duration: 0.2), value: libraryService.isScanning)
             .navigationDestination(item: $selectedFolder) { folder in
                 if let share = shareManager.savedShare(for: folder.shareId) {
-                    // Use MovieLibraryFolderView for Movies content type
+                    // Use specialized views for each content type
                     if folder.contentType == .movies {
                         MovieLibraryFolderView(
+                            folder: folder,
+                            share: share,
+                            shareManager: shareManager
+                        )
+                    } else if folder.contentType == .tvShows {
+                        TVShowLibraryFolderView(
                             folder: folder,
                             share: share,
                             shareManager: shareManager

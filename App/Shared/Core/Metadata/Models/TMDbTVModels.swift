@@ -203,7 +203,7 @@ struct TMDbSeasonDetails: Codable, Sendable {
     let episodes: [TMDbEpisode]?
 
     enum CodingKeys: String, CodingKey {
-        case id = "_id"
+        case id
         case seasonNumber = "season_number"
         case name
         case overview

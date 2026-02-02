@@ -14,6 +14,9 @@ final class MetadataService: ObservableObject {
     /// Whether a batch fetch is in progress
     @Published private(set) var isFetching: Bool = false
 
+    /// Trigger for TV metadata updates - views can observe this to force re-render
+    @Published private(set) var tvMetadataVersion: Int = 0
+
     // MARK: - Dependencies
 
     private let filenameParser: FilenameParser
@@ -197,6 +200,9 @@ final class MetadataService: ObservableObject {
             // Small delay to avoid rate limiting
             try? await Task.sleep(nanoseconds: 250_000_000) // 0.25 seconds
         }
+
+        // Notify observers that metadata cache has been updated
+        objectWillChange.send()
 
         isFetching = false
         fetchProgress = nil
@@ -490,6 +496,9 @@ final class MetadataService: ObservableObject {
             // Small delay to avoid rate limiting
             try? await Task.sleep(nanoseconds: 250_000_000) // 0.25 seconds
         }
+
+        // Notify observers that TV metadata cache has been updated
+        tvMetadataVersion += 1
 
         isFetching = false
         fetchProgress = nil
