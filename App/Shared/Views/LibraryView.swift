@@ -101,7 +101,6 @@ struct LibraryView: View {
                             folder: folder,
                             shareName: shareName(for: folder),
                             status: shareStatus(for: folder),
-                            missingFileCount: libraryService.missingFileCount(for: folder.id),
                             onRemove: {
                                 confirmRemove(folder)
                             },
@@ -238,7 +237,7 @@ private struct ScanProgressBanner: View {
         switch progress.status {
         case .scanning:
             return progress.currentFolder.displayName
-        case .completed(let videoCount, _, _):
+        case .completed(let videoCount, _):
             return "\(progress.currentFolder.displayName): \(videoCount) videos"
         case .failed:
             return "\(progress.currentFolder.displayName): Failed"

@@ -35,7 +35,7 @@ final class LibraryScanCoordinator: LibraryScanning, @unchecked Sendable {
         var failedCount = 0
         var totalVideoCount = 0
         var totalNewFiles = 0
-        var totalMissingFiles = 0
+        var totalRemovedFiles = 0
 
         var folderIndex = 0
         let totalFolders = folders.count
@@ -94,7 +94,7 @@ final class LibraryScanCoordinator: LibraryScanning, @unchecked Sendable {
                         let result = try await scanFolderIncremental(folder, browser: browser)
                         totalVideoCount += result.videoCount
                         totalNewFiles += result.newFiles
-                        totalMissingFiles += result.missingFiles
+                        totalRemovedFiles += result.removedFiles
                         scannedCount += 1
 
                         onProgress(ScanProgress(
@@ -103,8 +103,7 @@ final class LibraryScanCoordinator: LibraryScanning, @unchecked Sendable {
                             totalFolders: totalFolders,
                             status: .completed(
                                 videoCount: result.videoCount,
-                                newFiles: result.newFiles,
-                                missingFiles: result.missingFiles
+                                newFiles: result.newFiles
                             )
                         ))
                     } catch {
@@ -142,8 +141,7 @@ final class LibraryScanCoordinator: LibraryScanning, @unchecked Sendable {
             skippedCount: skippedCount,
             failedCount: failedCount,
             totalVideoCount: totalVideoCount,
-            totalNewFiles: totalNewFiles,
-            totalMissingFiles: totalMissingFiles
+            totalNewFiles: totalNewFiles
         )
     }
 
@@ -152,7 +150,7 @@ final class LibraryScanCoordinator: LibraryScanning, @unchecked Sendable {
     private struct FolderScanOutput {
         let videoCount: Int
         let newFiles: Int
-        let missingFiles: Int
+        let removedFiles: Int
     }
 
     private func scanFolderIncremental(
@@ -171,27 +169,16 @@ final class LibraryScanCoordinator: LibraryScanning, @unchecked Sendable {
 
         var updatedFiles: [LibraryFile] = []
         var newCount = 0
-        var missingCount = 0
+        var removedCount = 0
 
-        // Process existing files - check for missing
+        // Process existing files - keep only those still present
         for existing in existingFiles {
             if currentPaths.contains(existing.relativePath) {
-                // File still exists - keep it as available, update lastSeenAt
-                if existing.status == .missing {
-                    // File reappeared
-                    updatedFiles.append(existing.withStatus(.available))
-                } else {
-                    updatedFiles.append(existing.withLastSeen())
-                }
+                // File still exists - keep it, update lastSeenAt
+                updatedFiles.append(existing.withLastSeen())
             } else {
-                // File no longer exists
-                if existing.status != .missing {
-                    missingCount += 1
-                    updatedFiles.append(existing.withStatus(.missing))
-                } else {
-                    // Already marked as missing
-                    updatedFiles.append(existing)
-                }
+                // File no longer exists - don't include it (effectively delete)
+                removedCount += 1
             }
         }
 
@@ -206,13 +193,10 @@ final class LibraryScanCoordinator: LibraryScanning, @unchecked Sendable {
         // Save updated file index
         try fileStorage.saveFiles(updatedFiles, forFolder: folder.id)
 
-        // Count available files
-        let videoCount = updatedFiles.filter { $0.status == .available }.count
-
         return FolderScanOutput(
-            videoCount: videoCount,
+            videoCount: updatedFiles.count,
             newFiles: newCount,
-            missingFiles: missingCount
+            removedFiles: removedCount
         )
     }
 }

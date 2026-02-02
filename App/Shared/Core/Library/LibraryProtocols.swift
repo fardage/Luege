@@ -95,7 +95,7 @@ struct ScanProgress: Sendable {
 /// Status of scanning a single folder
 enum ScanFolderStatus: Sendable {
     case scanning
-    case completed(videoCount: Int, newFiles: Int, missingFiles: Int)
+    case completed(videoCount: Int, newFiles: Int)
     case failed(error: String)
     case skipped(reason: SkipReason)
 }
@@ -113,15 +113,13 @@ struct LibraryScanResult: Sendable {
     let failedCount: Int
     let totalVideoCount: Int
     let totalNewFiles: Int
-    let totalMissingFiles: Int
 
     static let empty = LibraryScanResult(
         scannedCount: 0,
         skippedCount: 0,
         failedCount: 0,
         totalVideoCount: 0,
-        totalNewFiles: 0,
-        totalMissingFiles: 0
+        totalNewFiles: 0
     )
 }
 
@@ -137,7 +135,4 @@ protocol LibraryFileStoring: Sendable {
 
     /// Delete all files for a library folder
     func deleteFiles(forFolder folderId: UUID) throws
-
-    /// Get count of files with a specific status
-    func fileCount(forFolder folderId: UUID, status: LibraryFile.FileStatus) throws -> Int
 }

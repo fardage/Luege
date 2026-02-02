@@ -68,43 +68,6 @@ final class LibraryFileStorageTests: XCTestCase {
         XCTAssertTrue(loaded.isEmpty)
     }
 
-    func testFileCount() throws {
-        let files = [
-            LibraryFile(
-                folderId: testFolderId,
-                relativePath: "available1.mkv",
-                fileName: "available1.mkv",
-                size: 1_000_000,
-                modifiedDate: nil,
-                status: .available
-            ),
-            LibraryFile(
-                folderId: testFolderId,
-                relativePath: "available2.mp4",
-                fileName: "available2.mp4",
-                size: 2_000_000,
-                modifiedDate: nil,
-                status: .available
-            ),
-            LibraryFile(
-                folderId: testFolderId,
-                relativePath: "missing.avi",
-                fileName: "missing.avi",
-                size: 3_000_000,
-                modifiedDate: nil,
-                status: .missing
-            )
-        ]
-
-        try storage.saveFiles(files, forFolder: testFolderId)
-
-        let availableCount = try storage.fileCount(forFolder: testFolderId, status: .available)
-        let missingCount = try storage.fileCount(forFolder: testFolderId, status: .missing)
-
-        XCTAssertEqual(availableCount, 2)
-        XCTAssertEqual(missingCount, 1)
-    }
-
     func testSeparateFolderStorage() throws {
         let folderId1 = UUID()
         let folderId2 = UUID()

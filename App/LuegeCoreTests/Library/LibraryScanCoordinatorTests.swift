@@ -140,10 +140,9 @@ final class LibraryScanCoordinatorTests: XCTestCase {
         // Verify file was saved
         let savedFiles = mockFileStorage.files[folder.id] ?? []
         XCTAssertEqual(savedFiles.count, 1)
-        XCTAssertEqual(savedFiles.first?.status, .available)
     }
 
-    func testScanDetectsMissingFiles() async {
+    func testScanRemovesMissingFiles() async {
         let share = makeShare()
         let folder = makeFolder(shareId: share.id, path: "Movies")
 
@@ -153,8 +152,7 @@ final class LibraryScanCoordinatorTests: XCTestCase {
             relativePath: "old_movie.mkv",
             fileName: "old_movie.mkv",
             size: 1_000_000,
-            modifiedDate: nil,
-            status: .available
+            modifiedDate: nil
         )
         mockFileStorage.setFiles([existingFile], forFolder: folder.id)
 
@@ -170,13 +168,11 @@ final class LibraryScanCoordinatorTests: XCTestCase {
         )
 
         XCTAssertEqual(result.scannedCount, 1)
-        XCTAssertEqual(result.totalMissingFiles, 1)
-        XCTAssertEqual(result.totalVideoCount, 0) // Missing files don't count
+        XCTAssertEqual(result.totalVideoCount, 0)
 
-        // Verify file was marked as missing
+        // Verify file was removed (not marked as missing)
         let savedFiles = mockFileStorage.files[folder.id] ?? []
-        XCTAssertEqual(savedFiles.count, 1)
-        XCTAssertEqual(savedFiles.first?.status, .missing)
+        XCTAssertEqual(savedFiles.count, 0)
     }
 
     func testScanReportsProgress() async {

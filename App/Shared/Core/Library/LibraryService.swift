@@ -184,11 +184,6 @@ final class LibraryService: ObservableObject {
         }
     }
 
-    /// Get the count of missing files for a folder
-    func missingFileCount(for folderId: UUID) -> Int {
-        (try? fileStorage.fileCount(forFolder: folderId, status: .missing)) ?? 0
-    }
-
     /// Get all files for a library folder
     func files(for folderId: UUID) -> [LibraryFile] {
         (try? fileStorage.loadFiles(forFolder: folderId)) ?? []
@@ -234,7 +229,7 @@ final class LibraryService: ObservableObject {
         scanProgress = progress
 
         // Update folder video count on completion
-        if case .completed(let videoCount, _, _) = progress.status {
+        if case .completed(let videoCount, _) = progress.status {
             updateFolder(progress.currentFolder.id) { folder in
                 folder.withScanResult(videoCount: videoCount, error: nil)
             }

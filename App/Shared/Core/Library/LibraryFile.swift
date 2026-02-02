@@ -8,16 +8,7 @@ struct LibraryFile: Identifiable, Codable, Sendable, Equatable, Hashable {
     let fileName: String
     let size: Int64
     let modifiedDate: Date?
-    var status: FileStatus
     var lastSeenAt: Date
-
-    /// Status of a tracked library file
-    enum FileStatus: String, Codable, Sendable {
-        /// File exists on the share
-        case available
-        /// File was previously found but no longer exists on the share
-        case missing
-    }
 
     init(
         id: UUID = UUID(),
@@ -26,7 +17,6 @@ struct LibraryFile: Identifiable, Codable, Sendable, Equatable, Hashable {
         fileName: String,
         size: Int64,
         modifiedDate: Date?,
-        status: FileStatus = .available,
         lastSeenAt: Date = Date()
     ) {
         self.id = id
@@ -35,7 +25,6 @@ struct LibraryFile: Identifiable, Codable, Sendable, Equatable, Hashable {
         self.fileName = fileName
         self.size = size
         self.modifiedDate = modifiedDate
-        self.status = status
         self.lastSeenAt = lastSeenAt
     }
 
@@ -47,16 +36,7 @@ struct LibraryFile: Identifiable, Codable, Sendable, Equatable, Hashable {
         self.fileName = discovered.fileName
         self.size = discovered.size
         self.modifiedDate = discovered.modifiedDate
-        self.status = .available
         self.lastSeenAt = Date()
-    }
-
-    /// Create a copy with updated status
-    func withStatus(_ newStatus: FileStatus) -> LibraryFile {
-        var updated = self
-        updated.status = newStatus
-        updated.lastSeenAt = Date()
-        return updated
     }
 
     /// Create a copy with updated lastSeenAt timestamp

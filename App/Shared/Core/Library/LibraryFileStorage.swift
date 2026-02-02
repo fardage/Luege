@@ -50,9 +50,4 @@ final class LibraryFileStorage: LibraryFileStoring, @unchecked Sendable {
             }
         }
     }
-
-    func fileCount(forFolder folderId: UUID, status: LibraryFile.FileStatus) throws -> Int {
-        let files = try loadFiles(forFolder: folderId)
-        return files.filter { $0.status == status }.count
-    }
 }

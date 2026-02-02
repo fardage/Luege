@@ -83,7 +83,6 @@ struct TVShowLibraryFolderView: View {
 
     private var files: [LibraryFile] {
         libraryService.files(for: folder.id)
-            .filter { $0.status != .missing }
             .sorted { $0.fileName.localizedCaseInsensitiveCompare($1.fileName) == .orderedAscending }
     }
 

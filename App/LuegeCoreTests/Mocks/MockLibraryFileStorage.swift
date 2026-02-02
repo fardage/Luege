@@ -41,14 +41,6 @@ final class MockLibraryFileStorage: LibraryFileStoring, @unchecked Sendable {
         files.removeValue(forKey: folderId)
     }
 
-    func fileCount(forFolder folderId: UUID, status: LibraryFile.FileStatus) throws -> Int {
-        if let error = loadError {
-            throw error
-        }
-
-        return (files[folderId] ?? []).filter { $0.status == status }.count
-    }
-
     func reset() {
         files = [:]
         loadError = nil
