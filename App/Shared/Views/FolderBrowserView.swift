@@ -50,6 +50,9 @@ struct FolderBrowserView: View {
                     } label: {
                         Label("Refresh", systemImage: "arrow.clockwise")
                     }
+                    #if os(tvOS)
+                    .labelStyle(.iconOnly)
+                    #endif
                 }
             }
 
@@ -62,6 +65,9 @@ struct FolderBrowserView: View {
                         systemImage: viewModel.showAllFiles ? "film" : "doc.on.doc"
                     )
                 }
+                #if os(tvOS)
+                .labelStyle(.iconOnly)
+                #endif
             }
         }
         .task {
@@ -215,9 +221,6 @@ struct FolderBrowserView: View {
                     .tint(.green)
                 }
             }
-            #endif
-            #if os(tvOS)
-            .focusable()
             #endif
         }
         .listStyle(.plain)

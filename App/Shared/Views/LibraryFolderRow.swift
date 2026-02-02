@@ -4,49 +4,61 @@ struct LibraryFolderRow: View {
     let folder: LibraryFolder
     let shareName: String?
     let status: ConnectionStatus
+    let onTap: () -> Void
     let onRemove: () -> Void
     let onRescan: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: folder.contentType.iconName)
-                .font(.title2)
-                .foregroundStyle(status.isOnline ? .primary : .secondary)
-                .frame(width: 32)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(folder.displayName)
-                    .font(.headline)
+        Button(action: onTap) {
+            HStack(spacing: rowSpacing) {
+                Image(systemName: folder.contentType.iconName)
+                    .font(iconFont)
                     .foregroundStyle(status.isOnline ? .primary : .secondary)
+                    .frame(width: iconWidth)
 
-                HStack(spacing: 8) {
-                    if let shareName = shareName {
-                        Text(shareName)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(folder.displayName)
+                        .font(titleFont)
+                        .foregroundStyle(status.isOnline ? .primary : .secondary)
 
-                    if let videoCount = folder.videoCount {
-                        Text("\(videoCount) video\(videoCount == 1 ? "" : "s")")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+                    HStack(spacing: 8) {
+                        if let shareName = shareName {
+                            Text(shareName)
+                                .font(subtitleFont)
+                                .foregroundStyle(.secondary)
+                        }
 
-                    if folder.scanError != nil {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.caption)
-                            .foregroundStyle(.red)
+                        if let videoCount = folder.videoCount {
+                            Text("\(videoCount) video\(videoCount == 1 ? "" : "s")")
+                                .font(subtitleFont)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        if folder.scanError != nil {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(subtitleFont)
+                                .foregroundStyle(.red)
+                        }
                     }
                 }
-            }
 
-            Spacer()
+                Spacer()
 
-            if !status.isOnline {
-                ConnectionStatusBadge(status: status)
+                if !status.isOnline {
+                    ConnectionStatusBadge(status: status)
+                }
             }
+            #if os(tvOS)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
+            #endif
+            .contentShape(Rectangle())
         }
-        .contentShape(Rectangle())
+        #if os(tvOS)
+        .buttonStyle(.card)
+        #else
+        .buttonStyle(.plain)
+        #endif
         #if os(iOS)
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive, action: onRemove) {
@@ -84,6 +96,48 @@ struct LibraryFolderRow: View {
         }
         return label
     }
+
+    // MARK: - Platform-specific styling
+
+    private var rowSpacing: CGFloat {
+        #if os(tvOS)
+        return 20
+        #else
+        return 12
+        #endif
+    }
+
+    private var iconWidth: CGFloat {
+        #if os(tvOS)
+        return 48
+        #else
+        return 32
+        #endif
+    }
+
+    private var iconFont: Font {
+        #if os(tvOS)
+        return .title
+        #else
+        return .title2
+        #endif
+    }
+
+    private var titleFont: Font {
+        #if os(tvOS)
+        return .title3
+        #else
+        return .headline
+        #endif
+    }
+
+    private var subtitleFont: Font {
+        #if os(tvOS)
+        return .callout
+        #else
+        return .caption
+        #endif
+    }
 }
 
 #Preview {
@@ -98,6 +152,7 @@ struct LibraryFolderRow: View {
             ),
             shareName: "NAS",
             status: .online,
+            onTap: {},
             onRemove: {},
             onRescan: {}
         )
@@ -112,6 +167,7 @@ struct LibraryFolderRow: View {
             ),
             shareName: "Media Server",
             status: .offline(reason: "Connection refused"),
+            onTap: {},
             onRemove: {},
             onRescan: {}
         )
@@ -126,6 +182,7 @@ struct LibraryFolderRow: View {
             ),
             shareName: "Backup Drive",
             status: .online,
+            onTap: {},
             onRemove: {},
             onRescan: {}
         )

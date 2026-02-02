@@ -28,6 +28,9 @@ struct LibraryView: View {
                         Label("Refresh", systemImage: "arrow.clockwise")
                     }
                     .disabled(libraryService.isScanning || libraryService.libraryFolders.isEmpty)
+                    #if os(tvOS)
+                    .labelStyle(.iconOnly)
+                    #endif
                 }
             }
             .overlay(alignment: .bottom) {
@@ -101,6 +104,9 @@ struct LibraryView: View {
                             folder: folder,
                             shareName: shareName(for: folder),
                             status: shareStatus(for: folder),
+                            onTap: {
+                                handleFolderTap(folder)
+                            },
                             onRemove: {
                                 confirmRemove(folder)
                             },
@@ -110,12 +116,6 @@ struct LibraryView: View {
                                 }
                             }
                         )
-                        .onTapGesture {
-                            handleFolderTap(folder)
-                        }
-                        #if os(tvOS)
-                        .focusable()
-                        #endif
                     }
                 }
             }

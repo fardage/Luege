@@ -54,6 +54,9 @@ struct TVShowLibraryFolderView: View {
                     Label("Refresh", systemImage: "arrow.clockwise")
                 }
                 .disabled(isScanning)
+                #if os(tvOS)
+                .labelStyle(.iconOnly)
+                #endif
             }
         }
         .task {

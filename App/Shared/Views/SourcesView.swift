@@ -36,6 +36,9 @@ struct SourcesView: View {
                     } label: {
                         Label("Add", systemImage: "plus")
                     }
+                    #if os(tvOS)
+                    .labelStyle(.iconOnly)
+                    #endif
                 }
             }
             .sheet(isPresented: $isShowingAddSheet) {

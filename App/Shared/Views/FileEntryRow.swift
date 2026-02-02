@@ -7,32 +7,32 @@ struct FileEntryRow: View {
 
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 12) {
+            HStack(spacing: rowSpacing) {
                 ZStack(alignment: .bottomTrailing) {
                     Image(systemName: iconName)
-                        .font(.title2)
+                        .font(iconFont)
                         .foregroundStyle(iconColor)
-                        .frame(width: 32)
+                        .frame(width: iconWidth)
 
                     if isLibraryFolder {
                         Image(systemName: "books.vertical.fill")
-                            .font(.system(size: 10))
+                            .font(.system(size: libraryBadgeSize))
                             .foregroundStyle(.white)
-                            .padding(2)
+                            .padding(libraryBadgePadding)
                             .background(Color.green)
                             .clipShape(Circle())
-                            .offset(x: 4, y: 4)
+                            .offset(x: libraryBadgeOffset, y: libraryBadgeOffset)
                     }
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(entry.name)
-                        .font(.body)
+                        .font(titleFont)
                         .lineLimit(1)
 
                     if let subtitle = subtitle {
                         Text(subtitle)
-                            .font(.caption)
+                            .font(subtitleFont)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -41,13 +41,21 @@ struct FileEntryRow: View {
 
                 if entry.isFolder {
                     Image(systemName: "chevron.right")
-                        .font(.caption)
+                        .font(chevronFont)
                         .foregroundStyle(.secondary)
                 }
             }
+            #if os(tvOS)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
+            #endif
             .contentShape(Rectangle())
         }
+        #if os(tvOS)
+        .buttonStyle(.card)
+        #else
         .buttonStyle(.plain)
+        #endif
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint(entry.isFolder ? "Double-tap to open folder" : "")
@@ -121,5 +129,79 @@ struct FileEntryRow: View {
         }
 
         return label
+    }
+
+    // MARK: - Platform-specific styling
+
+    private var rowSpacing: CGFloat {
+        #if os(tvOS)
+        return 20
+        #else
+        return 12
+        #endif
+    }
+
+    private var iconWidth: CGFloat {
+        #if os(tvOS)
+        return 48
+        #else
+        return 32
+        #endif
+    }
+
+    private var iconFont: Font {
+        #if os(tvOS)
+        return .title
+        #else
+        return .title2
+        #endif
+    }
+
+    private var titleFont: Font {
+        #if os(tvOS)
+        return .title3
+        #else
+        return .body
+        #endif
+    }
+
+    private var subtitleFont: Font {
+        #if os(tvOS)
+        return .callout
+        #else
+        return .caption
+        #endif
+    }
+
+    private var chevronFont: Font {
+        #if os(tvOS)
+        return .body
+        #else
+        return .caption
+        #endif
+    }
+
+    private var libraryBadgeSize: CGFloat {
+        #if os(tvOS)
+        return 14
+        #else
+        return 10
+        #endif
+    }
+
+    private var libraryBadgePadding: CGFloat {
+        #if os(tvOS)
+        return 4
+        #else
+        return 2
+        #endif
+    }
+
+    private var libraryBadgeOffset: CGFloat {
+        #if os(tvOS)
+        return 6
+        #else
+        return 4
+        #endif
     }
 }
