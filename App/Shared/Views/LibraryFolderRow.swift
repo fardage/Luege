@@ -101,7 +101,7 @@ struct LibraryFolderRow: View {
 
     private var rowSpacing: CGFloat {
         #if os(tvOS)
-        return 20
+        return 28
         #else
         return 12
         #endif
