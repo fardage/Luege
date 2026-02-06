@@ -30,8 +30,13 @@ struct TVShowGridView: View {
                         Text(section.letter)
                             .font(.title2.bold())
                             .frame(maxWidth: .infinity, alignment: .leading)
+                            #if os(tvOS)
+                            .padding(.top, 40)
+                            .padding(.bottom, 20)
+                            #else
                             .padding(.top, 16)
                             .padding(.bottom, 4)
+                            #endif
                             .padding(.horizontal)
                             .id("section_\(section.letter)")
 
