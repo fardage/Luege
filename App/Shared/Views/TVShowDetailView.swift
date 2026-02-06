@@ -282,6 +282,7 @@ struct TVShowDetailView: View {
                 .foregroundStyle(.secondary)
         }
         .padding(.vertical, 12)
+        .contentShape(Rectangle())
     }
 
     @ViewBuilder
