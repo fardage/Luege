@@ -8,9 +8,11 @@ struct TVShowLibraryFolderView: View {
 
     @EnvironmentObject private var libraryService: LibraryService
     @EnvironmentObject private var metadataService: MetadataService
+    @EnvironmentObject private var progressService: PlaybackProgressService
 
     @State private var selectedShow: TVShowMetadata?
     @State private var fileToPlay: LibraryFile?
+    @State private var resumeStartTime: TimeInterval?
     @State private var isFetchingMetadata = false
     @State private var isScanning = false
 
@@ -68,13 +70,15 @@ struct TVShowLibraryFolderView: View {
                 show: show,
                 episodes: episodes(forTmdbId: show.tmdbId),
                 files: fileMapping(forTmdbId: show.tmdbId),
-                onPlayEpisode: { file in
+                onPlayEpisode: { file, startTime in
+                    resumeStartTime = startTime
                     fileToPlay = file
                 }
             )
         }
         .fullScreenCover(item: $fileToPlay) { file in
             videoPlayerView(for: file)
+                .onDisappear { resumeStartTime = nil }
         }
         .overlay {
             if isFetchingMetadata {
@@ -170,7 +174,9 @@ struct TVShowLibraryFolderView: View {
             share: share,
             credentialProvider: { [weak shareManager] in
                 try await shareManager?.credentials(for: share)
-            }
+            },
+            progressService: progressService,
+            startTime: resumeStartTime
         )
     }
 
@@ -251,4 +257,5 @@ struct TVShowLibraryFolderView: View {
     }
     .environmentObject(LibraryService())
     .environmentObject(MetadataService())
+    .environmentObject(PlaybackProgressService())
 }

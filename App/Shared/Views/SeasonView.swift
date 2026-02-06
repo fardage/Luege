@@ -6,8 +6,9 @@ struct SeasonView: View {
     let showName: String
     let episodes: [TVEpisodeMetadata]
     let files: [UUID: LibraryFile]  // Episode metadata ID -> LibraryFile
-    let onPlayEpisode: (LibraryFile) -> Void
+    let onPlayEpisode: (LibraryFile, TimeInterval?) -> Void
 
+    @EnvironmentObject private var progressService: PlaybackProgressService
     @State private var selectedEpisode: TVEpisodeMetadata?
 
     var body: some View {
@@ -37,12 +38,13 @@ struct SeasonView: View {
             EpisodeDetailView(
                 episode: episode,
                 showName: showName
-            ) {
+            ) { startTime in
                 selectedEpisode = nil
                 if let file = files[episode.id] {
-                    onPlayEpisode(file)
+                    onPlayEpisode(file, startTime)
                 }
             }
+            .environmentObject(progressService)
             .presentationBackground(.black)
         }
     }
@@ -84,9 +86,10 @@ struct SeasonView: View {
             showName: "Game of Thrones",
             episodes: episodes,
             files: [:]
-        ) { _ in
+        ) { _, _ in
             print("Play")
         }
     }
     .environmentObject(MetadataService())
+    .environmentObject(PlaybackProgressService())
 }

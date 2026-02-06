@@ -8,10 +8,12 @@ struct MovieLibraryFolderView: View {
 
     @EnvironmentObject private var libraryService: LibraryService
     @EnvironmentObject private var metadataService: MetadataService
+    @EnvironmentObject private var progressService: PlaybackProgressService
 
     @State private var selectedFile: LibraryFile?
     @State private var selectedMetadata: MovieMetadata?
     @State private var fileToPlay: LibraryFile?
+    @State private var resumeStartTime: TimeInterval?
     @State private var isFetchingMetadata = false
     @State private var isScanning = false
 
@@ -55,10 +57,11 @@ struct MovieLibraryFolderView: View {
             MovieDetailView(
                 metadata: metadata,
                 file: file,
-                onPlay: {
+                onPlay: { startTime in
                     // Close detail sheet and open player
                     let fileToOpen = file
                     selectedFile = nil
+                    resumeStartTime = startTime
                     // Small delay to let sheet dismiss
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                         fileToPlay = fileToOpen
@@ -69,10 +72,12 @@ struct MovieLibraryFolderView: View {
                 }
             )
             .environmentObject(metadataService)
+            .environmentObject(progressService)
             .presentationBackground(.black)
         }
         .fullScreenCover(item: $fileToPlay) { file in
             videoPlayerView(for: file)
+                .onDisappear { resumeStartTime = nil }
         }
         .overlay {
             if isFetchingMetadata {
@@ -106,7 +111,9 @@ struct MovieLibraryFolderView: View {
             share: share,
             credentialProvider: { [weak shareManager] in
                 try await shareManager?.credentials(for: share)
-            }
+            },
+            progressService: progressService,
+            startTime: resumeStartTime
         )
     }
 
@@ -193,4 +200,5 @@ struct MovieLibraryFolderView: View {
     }
     .environmentObject(LibraryService())
     .environmentObject(MetadataService())
+    .environmentObject(PlaybackProgressService())
 }

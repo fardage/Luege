@@ -79,7 +79,7 @@ struct TVShowDetailView: View {
     let show: TVShowMetadata
     let episodes: [TVEpisodeMetadata]
     let files: [UUID: LibraryFile]  // Episode metadata ID -> LibraryFile
-    let onPlayEpisode: (LibraryFile) -> Void
+    let onPlayEpisode: (LibraryFile, TimeInterval?) -> Void
 
     @EnvironmentObject private var metadataService: MetadataService
 
@@ -358,9 +358,10 @@ private struct SeasonGroup {
             show: show,
             episodes: episodes,
             files: [:]
-        ) { _ in
+        ) { _, _ in
             print("Play")
         }
     }
     .environmentObject(MetadataService())
+    .environmentObject(PlaybackProgressService())
 }

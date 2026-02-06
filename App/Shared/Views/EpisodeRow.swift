@@ -6,15 +6,22 @@ struct EpisodeRow: View {
     let onTap: () -> Void
 
     @EnvironmentObject private var metadataService: MetadataService
+    @EnvironmentObject private var progressService: PlaybackProgressService
 
     private let stillAspectRatio: CGFloat = 16 / 9
 
     var body: some View {
+        // Reference progressVersion to track changes
+        let _ = progressService.progressVersion
+
         Button(action: onTap) {
             HStack(alignment: .center, spacing: 12) {
                 stillImage
                     .frame(width: stillWidth, height: stillWidth / stillAspectRatio)
                     .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .overlay(alignment: .bottom) {
+                        episodeProgressBar
+                    }
 
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
@@ -31,9 +38,21 @@ struct EpisodeRow: View {
                         }
                     }
 
-                    Text(episode.name)
-                        .font(.subheadline.weight(.medium))
-                        .lineLimit(2)
+                    HStack(spacing: 4) {
+                        if progressService.isWatched(episode.id) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                                #if os(iOS)
+                                .font(.system(size: 12))
+                                #elseif os(tvOS)
+                                .font(.system(size: 18))
+                                #endif
+                        }
+
+                        Text(episode.name)
+                            .font(.subheadline.weight(.medium))
+                            .lineLimit(2)
+                    }
 
                     if let overview = episode.overview, !overview.isEmpty {
                         Text(overview)
@@ -110,6 +129,28 @@ struct EpisodeRow: View {
                 .foregroundStyle(.secondary)
         }
     }
+
+    // MARK: - Progress Bar
+
+    @ViewBuilder
+    private var episodeProgressBar: some View {
+        if let progress = progressService.progress(for: episode.id),
+           !progress.isWatched && progress.progress > 0.01 {
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Rectangle()
+                        .fill(Color.white.opacity(0.3))
+                    Rectangle()
+                        .fill(Color.blue)
+                        .frame(width: geo.size.width * progress.progress)
+                }
+            }
+            .frame(height: 3)
+            .clipShape(RoundedRectangle(cornerRadius: 1.5))
+            .padding(.horizontal, 4)
+            .padding(.bottom, 4)
+        }
+    }
 }
 
 #Preview {
@@ -131,4 +172,5 @@ struct EpisodeRow: View {
         }
     }
     .environmentObject(MetadataService())
+    .environmentObject(PlaybackProgressService())
 }

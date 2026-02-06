@@ -94,10 +94,11 @@ private struct EpisodeStillHeaderView: View {
 struct EpisodeDetailView: View {
     let episode: TVEpisodeMetadata
     let showName: String
-    let onPlay: () -> Void
+    let onPlay: (TimeInterval?) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var metadataService: MetadataService
+    @EnvironmentObject private var progressService: PlaybackProgressService
 
     var body: some View {
         NavigationStack {
@@ -110,6 +111,7 @@ struct EpisodeDetailView: View {
                     VStack(spacing: 16) {
                         titleSection
                         episodeLabel
+                        episodeWatchedLabel
                         buttonRow
                         synopsisSection
                         metadataInfoRow
@@ -166,24 +168,71 @@ struct EpisodeDetailView: View {
             .frame(maxWidth: .infinity)
     }
 
+    // MARK: - Watched Label
+
+    @ViewBuilder
+    private var episodeWatchedLabel: some View {
+        if progressService.isWatched(episode.id) {
+            HStack(spacing: 6) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                Text("Watched")
+            }
+            .font(.subheadline.weight(.medium))
+            .foregroundStyle(.secondary)
+        }
+    }
+
     // MARK: - Button Row
+
+    private var episodeProgress: PlaybackProgress? {
+        progressService.progress(for: episode.id)
+    }
 
     private var buttonRow: some View {
         HStack(spacing: 16) {
-            Button(action: onPlay) {
-                Label("Play Episode", systemImage: "play.fill")
-                    .font(.headline)
-            }
-            .buttonStyle(.adaptiveGlassProminent)
+            if let progress = episodeProgress, progress.isResumable {
+                Button { onPlay(progress.currentTime) } label: {
+                    Label("Resume from \(progress.formattedResumeTime)", systemImage: "play.fill")
+                        .font(.headline)
+                }
+                .buttonStyle(.adaptiveGlassProminent)
 
-            Button {
-                // Secondary action placeholder
+                Button { onPlay(nil) } label: {
+                    Label("Start from Beginning", systemImage: "arrow.counterclockwise")
+                        .font(.subheadline)
+                }
+                .buttonStyle(.adaptiveGlass)
+            } else {
+                Button { onPlay(nil) } label: {
+                    Label("Play Episode", systemImage: "play.fill")
+                        .font(.headline)
+                }
+                .buttonStyle(.adaptiveGlassProminent)
+            }
+
+            Menu {
+                if progressService.isWatched(episode.id) {
+                    Button {
+                        progressService.markAsUnwatched(fileId: episode.id)
+                    } label: {
+                        Label("Mark as Unwatched", systemImage: "eye.slash")
+                    }
+                } else {
+                    Button {
+                        progressService.markAsWatched(fileId: episode.id)
+                    } label: {
+                        Label("Mark as Watched", systemImage: "eye")
+                    }
+                }
             } label: {
                 Image(systemName: "ellipsis")
                     .font(.body.weight(.semibold))
                     .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .background(Color.white.opacity(0.15))
+                    .clipShape(Circle())
             }
-            .buttonStyle(.adaptiveGlassCircle)
         }
         .padding(.top, 4)
         .frame(maxWidth: .infinity)
@@ -264,8 +313,9 @@ struct EpisodeDetailView: View {
     return EpisodeDetailView(
         episode: episode,
         showName: "Game of Thrones"
-    ) {
-        print("Play")
+    ) { startTime in
+        print("Play from \(String(describing: startTime))")
     }
     .environmentObject(MetadataService())
+    .environmentObject(PlaybackProgressService())
 }

@@ -82,10 +82,11 @@ private struct MovieDetailHeaderView: View {
 struct MovieDetailView: View {
     let metadata: MovieMetadata
     let file: LibraryFile
-    let onPlay: () -> Void
+    let onPlay: (TimeInterval?) -> Void
     let onDismiss: () -> Void
 
     @EnvironmentObject private var metadataService: MetadataService
+    @EnvironmentObject private var progressService: PlaybackProgressService
 
     var body: some View {
         NavigationStack {
@@ -98,6 +99,7 @@ struct MovieDetailView: View {
                     VStack(spacing: 16) {
                         titleSection
                         genreLine
+                        watchedLabel
                         buttonRow
                         synopsisSection
                         metadataInfoRow
@@ -158,24 +160,71 @@ struct MovieDetailView: View {
         }
     }
 
+    // MARK: - Watched Label
+
+    @ViewBuilder
+    private var watchedLabel: some View {
+        if progressService.isWatched(file.id) {
+            HStack(spacing: 6) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                Text("Watched")
+            }
+            .font(.subheadline.weight(.medium))
+            .foregroundStyle(.secondary)
+        }
+    }
+
     // MARK: - Button Row
+
+    private var fileProgress: PlaybackProgress? {
+        progressService.progress(for: file.id)
+    }
 
     private var buttonRow: some View {
         HStack(spacing: 16) {
-            Button(action: onPlay) {
-                Label("Play", systemImage: "play.fill")
-                    .font(.headline)
-            }
-            .buttonStyle(.adaptiveGlassProminent)
+            if let progress = fileProgress, progress.isResumable {
+                Button { onPlay(progress.currentTime) } label: {
+                    Label("Resume from \(progress.formattedResumeTime)", systemImage: "play.fill")
+                        .font(.headline)
+                }
+                .buttonStyle(.adaptiveGlassProminent)
 
-            Button {
-                // Secondary action placeholder
+                Button { onPlay(nil) } label: {
+                    Label("Start from Beginning", systemImage: "arrow.counterclockwise")
+                        .font(.subheadline)
+                }
+                .buttonStyle(.adaptiveGlass)
+            } else {
+                Button { onPlay(nil) } label: {
+                    Label("Play", systemImage: "play.fill")
+                        .font(.headline)
+                }
+                .buttonStyle(.adaptiveGlassProminent)
+            }
+
+            Menu {
+                if progressService.isWatched(file.id) {
+                    Button {
+                        progressService.markAsUnwatched(fileId: file.id)
+                    } label: {
+                        Label("Mark as Unwatched", systemImage: "eye.slash")
+                    }
+                } else {
+                    Button {
+                        progressService.markAsWatched(fileId: file.id)
+                    } label: {
+                        Label("Mark as Watched", systemImage: "eye")
+                    }
+                }
             } label: {
                 Image(systemName: "ellipsis")
                     .font(.body.weight(.semibold))
                     .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .background(Color.white.opacity(0.15))
+                    .clipShape(Circle())
             }
-            .buttonStyle(.adaptiveGlassCircle)
         }
         .padding(.top, 4)
         .frame(maxWidth: .infinity)
@@ -266,8 +315,9 @@ struct MovieDetailView: View {
     return MovieDetailView(
         metadata: metadata,
         file: file,
-        onPlay: { print("Play") },
+        onPlay: { startTime in print("Play from \(String(describing: startTime))") },
         onDismiss: { print("Dismiss") }
     )
     .environmentObject(MetadataService())
+    .environmentObject(PlaybackProgressService())
 }

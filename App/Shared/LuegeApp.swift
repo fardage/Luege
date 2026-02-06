@@ -5,6 +5,7 @@ struct LuegeApp: App {
     @StateObject private var shareManager = ShareManager()
     @StateObject private var libraryService = LibraryService()
     @StateObject private var metadataService = MetadataService()
+    @StateObject private var playbackProgressService = PlaybackProgressService()
 
     var body: some Scene {
         WindowGroup {
@@ -13,6 +14,7 @@ struct LuegeApp: App {
                 .environmentObject(shareManager)
                 .environmentObject(libraryService)
                 .environmentObject(metadataService)
+                .environmentObject(playbackProgressService)
                 .task {
                     // Load saved shares and library folders
                     try? await shareManager.loadSavedShares()

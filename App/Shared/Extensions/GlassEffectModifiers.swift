@@ -20,6 +20,24 @@ struct AdaptiveGlassProminentButtonStyle: ButtonStyle {
     }
 }
 
+/// A secondary capsule button that uses glass effect on iOS/tvOS 26+ with a translucent fallback.
+struct AdaptiveGlassButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        if #available(iOS 26, tvOS 26, *) {
+            configuration.label
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+                .glassEffect(.regular.interactive(), in: .capsule)
+        } else {
+            configuration.label
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+                .background(Color.white.opacity(configuration.isPressed ? 0.08 : 0.12))
+                .clipShape(Capsule())
+        }
+    }
+}
+
 /// A secondary circle button that uses glass effect on iOS/tvOS 26+ with a translucent fallback.
 struct AdaptiveGlassCircleButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
@@ -39,6 +57,12 @@ struct AdaptiveGlassCircleButtonStyle: ButtonStyle {
 extension ButtonStyle where Self == AdaptiveGlassProminentButtonStyle {
     static var adaptiveGlassProminent: AdaptiveGlassProminentButtonStyle {
         AdaptiveGlassProminentButtonStyle()
+    }
+}
+
+extension ButtonStyle where Self == AdaptiveGlassButtonStyle {
+    static var adaptiveGlass: AdaptiveGlassButtonStyle {
+        AdaptiveGlassButtonStyle()
     }
 }
 

@@ -14,7 +14,9 @@ struct VideoPlayerView: View {
     init(
         video: FileEntry,
         share: SavedShare,
-        credentialProvider: @escaping () async throws -> ShareCredentials? = { nil }
+        credentialProvider: @escaping () async throws -> ShareCredentials? = { nil },
+        progressService: PlaybackProgressService? = nil,
+        startTime: TimeInterval? = nil
     ) {
         // Create a directory browser for external subtitle scanning
         let browser = SMBDirectoryBrowser()
@@ -23,7 +25,9 @@ struct VideoPlayerView: View {
             video: video,
             share: share,
             credentialProvider: credentialProvider,
-            directoryBrowser: browser
+            directoryBrowser: browser,
+            progressService: progressService,
+            startTime: startTime
         ))
     }
 

@@ -6,25 +6,46 @@ struct MoviePosterCard: View {
     let onTap: () -> Void
 
     @EnvironmentObject private var metadataService: MetadataService
+    @EnvironmentObject private var progressService: PlaybackProgressService
 
     private let posterAspectRatio: CGFloat = 2 / 3
 
     var body: some View {
+        // Reference progressVersion to track changes
+        let _ = progressService.progressVersion
+
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: 8) {
                 posterImage
                     .aspectRatio(posterAspectRatio, contentMode: .fit)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(alignment: .bottom) {
+                        progressBar
+                    }
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(metadata.title)
-                        .font(.caption.weight(.medium))
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
+                HStack(alignment: .center, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(metadata.title)
+                            .font(.caption.weight(.medium))
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
 
-                    Text(metadata.year.map(String.init) ?? " ")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        Text(metadata.year.map(String.init) ?? " ")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if progressService.isWatched(metadata.id) {
+                        Spacer(minLength: 0)
+
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                            #if os(iOS)
+                            .font(.system(size: 16))
+                            #elseif os(tvOS)
+                            .font(.system(size: 22))
+                            #endif
+                    }
                 }
             }
         }
@@ -32,6 +53,28 @@ struct MoviePosterCard: View {
         #if os(tvOS)
         .buttonStyle(.card)
         #endif
+    }
+
+    // MARK: - Progress Bar
+
+    @ViewBuilder
+    private var progressBar: some View {
+        if let progress = progressService.progress(for: metadata.id),
+           !progress.isWatched && progress.progress > 0.01 {
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Rectangle()
+                        .fill(Color.white.opacity(0.3))
+                    Rectangle()
+                        .fill(Color.blue)
+                        .frame(width: geo.size.width * progress.progress)
+                }
+            }
+            .frame(height: 3)
+            .clipShape(RoundedRectangle(cornerRadius: 1.5))
+            .padding(.horizontal, 4)
+            .padding(.bottom, 4)
+        }
     }
 
     @ViewBuilder
@@ -84,4 +127,5 @@ struct MoviePosterCard: View {
     }
     .frame(width: 150)
     .environmentObject(MetadataService())
+    .environmentObject(PlaybackProgressService())
 }

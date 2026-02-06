@@ -48,6 +48,13 @@ final class VideoPlayerViewModel: ObservableObject {
     private let credentialProvider: () async throws -> ShareCredentials?
     private let directoryBrowser: DirectoryBrowsing?
 
+    // Playback progress tracking
+    private let progressService: PlaybackProgressService?
+    let startTime: TimeInterval?
+    private var lastProgressSaveTime: Date = .distantPast
+    private let progressSaveInterval: TimeInterval = 30
+    private var didSaveWatchedThreshold = false
+
     private let controlsHideDelay: TimeInterval = 4.0
     private var controlsHideTask: Task<Void, Never>?
 
@@ -117,12 +124,16 @@ final class VideoPlayerViewModel: ObservableObject {
         video: FileEntry,
         share: SavedShare,
         credentialProvider: @escaping () async throws -> ShareCredentials? = { nil },
-        directoryBrowser: DirectoryBrowsing? = nil
+        directoryBrowser: DirectoryBrowsing? = nil,
+        progressService: PlaybackProgressService? = nil,
+        startTime: TimeInterval? = nil
     ) {
         self.video = video
         self.share = share
         self.credentialProvider = credentialProvider
         self.directoryBrowser = directoryBrowser
+        self.progressService = progressService
+        self.startTime = startTime
     }
 
     deinit {
@@ -160,6 +171,13 @@ final class VideoPlayerViewModel: ObservableObject {
 
             state = .ready
             print("[VideoPlayerVM] State: ready")
+
+            // Seek to resume position if provided
+            if let startTime = startTime, startTime > 0 {
+                await playerEngine.seek(to: startTime)
+                currentTime = startTime
+                print("[VideoPlayerVM] Resumed at \(startTime)s")
+            }
 
             // Scan for and load external subtitles in a detached task
             // This prevents SwiftUI task cancellation from interrupting the scan
@@ -235,6 +253,7 @@ final class VideoPlayerViewModel: ObservableObject {
         guard state.canPause else { return }
         engine?.pause()
         state = .paused
+        saveProgressNow()
         showControls()
     }
 
@@ -271,6 +290,7 @@ final class VideoPlayerViewModel: ObservableObject {
     }
 
     func stop() {
+        saveProgressNow()
         controlsHideTask?.cancel()
         engine?.stop()
         engine = nil
@@ -392,6 +412,33 @@ final class VideoPlayerViewModel: ObservableObject {
         isStalled = false
     }
 
+    // MARK: - Progress Saving
+
+    /// Save progress immediately
+    private func saveProgressNow() {
+        guard duration > 0 else { return }
+        progressService?.saveProgress(fileId: video.id, currentTime: currentTime, duration: duration)
+        lastProgressSaveTime = Date()
+    }
+
+    /// Save progress periodically (called from time update)
+    private func saveProgressIfNeeded() {
+        guard duration > 0 else { return }
+        let now = Date()
+
+        // Force an immediate save when first crossing the watched threshold (90%)
+        let crossedWatchedThreshold = !didSaveWatchedThreshold
+            && (currentTime / duration) >= PlaybackProgress.watchedThreshold
+
+        if crossedWatchedThreshold || now.timeIntervalSince(lastProgressSaveTime) >= progressSaveInterval {
+            progressService?.saveProgress(fileId: video.id, currentTime: currentTime, duration: duration)
+            lastProgressSaveTime = now
+            if crossedWatchedThreshold {
+                didSaveWatchedThreshold = true
+            }
+        }
+    }
+
     // MARK: - Engine Callbacks
 
     private func setupEngineCallbacks(_ engine: any PlayerEngine) {
@@ -423,6 +470,7 @@ final class VideoPlayerViewModel: ObservableObject {
                 }
             }
             self.currentTime = time
+            self.saveProgressIfNeeded()
         }
 
         engine.onDurationChange = { [weak self] duration in
