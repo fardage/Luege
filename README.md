@@ -6,13 +6,15 @@ A tvOS/iOS media player for playing content directly from SMB network shares.
 
 ```
 Luege/
-├── Sources/LuegeCore/          # Core business logic (SPM library)
-├── Tests/                      # Unit and integration tests
 ├── App/                        # iOS/tvOS application
-│   ├── Luege.xcodeproj/       # Xcode project
-│   ├── Shared/                # Shared SwiftUI code
+│   ├── Shared/                # Shared SwiftUI code (Core/, Views/, ViewModels/)
 │   ├── iOS/                   # iOS-specific files
-│   └── tvOS/                  # tvOS-specific files
+│   ├── tvOS/                  # tvOS-specific files
+│   ├── LuegeCoreTests/        # Unit tests
+│   ├── LuegeIntegrationTests/ # Integration tests
+│   ├── LuegeScreenshotTests/  # Visual regression tests
+│   ├── project.yml            # XcodeGen project definition
+│   └── Podfile                # CocoaPods (VLCKit)
 ├── Tools/                      # Development utilities
 │   ├── docker/                # Docker test environment
 │   └── scripts/               # Build and test scripts
@@ -22,43 +24,25 @@ Luege/
 
 ## Quick Start
 
+### Building the App
+
+```bash
+cd App && pod install           # Install CocoaPods dependencies
+cd App && xcodegen generate     # Generate Xcode project
+open Luege.xcworkspace          # Always use the workspace
+```
+
 ### Running Tests
 
 ```bash
-# Unit tests only
-make test-unit
-
-# Integration tests with Docker
-make test-integration
-
-# All tests
-make test
+make test-unit          # Unit tests only
+make test-integration   # Integration tests with Docker
+make test               # All tests
 ```
 
 ### Development Workflow
 
-See [CLAUDE.md](CLAUDE.md) for detailed development guidelines, including:
-- Story implementation cycle
-- Testing strategy
-- Pre-commit hooks setup
-- XcodeGen usage
-- Docker test environment
-
-## Building the App
-
-1. Generate Xcode project:
-   ```bash
-   cd App && xcodegen generate
-   ```
-
-2. Open workspace in Xcode:
-   ```bash
-   open Luege.xcworkspace
-   ```
-
-   Note: Use the workspace (not `App/Luege.xcodeproj`) to edit both the app and LuegeCore library in a single window.
-
-3. Build for iOS or tvOS targets
+See [CLAUDE.md](CLAUDE.md) for detailed development guidelines.
 
 ## License
 
