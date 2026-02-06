@@ -250,12 +250,12 @@ struct TVShowDetailView: View {
                         image
                             .resizable()
                             .scaledToFill()
-                            .frame(width: 50, height: 75)
-                            .clipShape(RoundedRectangle(cornerRadius: 4))
                     default:
                         seasonPlaceholder
                     }
                 }
+                .frame(width: 50, height: 75)
+                .clipShape(RoundedRectangle(cornerRadius: 4))
             } else {
                 seasonPlaceholder
             }

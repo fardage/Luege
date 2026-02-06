@@ -11,7 +11,7 @@ struct EpisodeRow: View {
 
     var body: some View {
         Button(action: onTap) {
-            HStack(alignment: .top, spacing: 12) {
+            HStack(alignment: .center, spacing: 12) {
                 stillImage
                     .frame(width: stillWidth, height: stillWidth / stillAspectRatio)
                     .clipShape(RoundedRectangle(cornerRadius: 6))
