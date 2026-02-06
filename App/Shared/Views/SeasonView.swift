@@ -43,6 +43,7 @@ struct SeasonView: View {
                     onPlayEpisode(file)
                 }
             }
+            .presentationBackground(.black)
         }
     }
 }

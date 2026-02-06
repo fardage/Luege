@@ -66,7 +66,7 @@ struct TVShowPosterCard: View {
     @ViewBuilder
     private var placeholderView: some View {
         ZStack {
-            Color.gray.opacity(0.2)
+            Color.white.opacity(0.08)
 
             VStack(spacing: 8) {
                 Image(systemName: "tv")

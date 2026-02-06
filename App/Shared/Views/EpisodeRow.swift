@@ -103,7 +103,7 @@ struct EpisodeRow: View {
     @ViewBuilder
     private var placeholderView: some View {
         ZStack {
-            Color.gray.opacity(0.2)
+            Color.white.opacity(0.08)
 
             Image(systemName: "play.rectangle")
                 .font(.title2)

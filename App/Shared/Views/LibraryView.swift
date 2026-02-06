@@ -230,7 +230,7 @@ private struct ScanProgressBanner: View {
                 .foregroundStyle(.secondary)
         }
         .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .background(Color.white.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
         .padding()
     }
 

@@ -9,6 +9,7 @@ struct LuegeApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .preferredColorScheme(.dark)
                 .environmentObject(shareManager)
                 .environmentObject(libraryService)
                 .environmentObject(metadataService)

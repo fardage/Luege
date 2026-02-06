@@ -1,6 +1,80 @@
 import SwiftUI
 
-/// TV show detail view with season list
+/// Cinematic backdrop header for TV show detail view
+private struct TVShowDetailHeaderView: View {
+    let show: TVShowMetadata
+
+    #if os(iOS)
+    private let backdropSize: TMDbService.BackdropSize = .w1280
+    private var backdropHeight: CGFloat { UIScreen.main.bounds.height * 0.55 }
+    #elseif os(tvOS)
+    private let backdropSize: TMDbService.BackdropSize = .w1280
+    private var backdropHeight: CGFloat { UIScreen.main.bounds.height * 0.58 }
+    #endif
+
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .bottom) {
+                backdropImage
+                    .frame(width: geometry.size.width, height: backdropHeight)
+                    .clipped()
+
+                gradientOverlay
+            }
+        }
+        .frame(height: backdropHeight)
+    }
+
+    @ViewBuilder
+    private var backdropImage: some View {
+        if let backdropPath = show.backdropPath,
+           let url = TMDbService.backdropURL(path: backdropPath, size: backdropSize) {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                case .empty:
+                    backdropPlaceholder
+                        .overlay { ProgressView() }
+                case .failure:
+                    backdropPlaceholder
+                @unknown default:
+                    backdropPlaceholder
+                }
+            }
+        } else {
+            backdropPlaceholder
+        }
+    }
+
+    @ViewBuilder
+    private var backdropPlaceholder: some View {
+        Rectangle()
+            .fill(Color.gray.opacity(0.3))
+            .overlay {
+                Image(systemName: "tv")
+                    .font(.system(size: 60))
+                    .foregroundStyle(.secondary)
+            }
+    }
+
+    private var gradientOverlay: some View {
+        LinearGradient(
+            stops: [
+                .init(color: .clear, location: 0.0),
+                .init(color: .clear, location: 0.45),
+                .init(color: .black.opacity(0.7), location: 0.75),
+                .init(color: .black, location: 1.0)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+}
+
+/// Apple TV app-style TV show detail view with cinematic backdrop and centered layout
 struct TVShowDetailView: View {
     let show: TVShowMetadata
     let episodes: [TVEpisodeMetadata]
@@ -10,133 +84,164 @@ struct TVShowDetailView: View {
     @EnvironmentObject private var metadataService: MetadataService
 
     var body: some View {
-        List {
-            // Header section with poster and info
-            Section {
-                headerView
-            }
+        ScrollView {
+            VStack(spacing: 0) {
+                // Cinematic backdrop
+                TVShowDetailHeaderView(show: show)
 
-            // Seasons
-            ForEach(groupedSeasons, id: \.seasonNumber) { season in
-                Section {
-                    NavigationLink {
-                        SeasonView(
-                            season: season.metadata ?? TVSeasonMetadata(
-                                seriesTmdbId: show.tmdbId,
-                                seasonNumber: season.seasonNumber,
-                                episodeCount: season.episodes.count
-                            ),
-                            showName: show.name,
-                            episodes: season.episodes,
-                            files: files,
-                            onPlayEpisode: onPlayEpisode
-                        )
-                    } label: {
-                        seasonRow(season)
-                    }
+                // Centered content below backdrop
+                VStack(spacing: 16) {
+                    titleSection
+                    genreLine
+                    metadataLine
+                    synopsisSection
+                    statsDivider
+                    seasonsSection
                 }
+                #if os(iOS)
+                .padding(.horizontal, 20)
+                #elseif os(tvOS)
+                .padding(.horizontal, 80)
+                #endif
+                .padding(.top, 16)
+                .padding(.bottom, 40)
             }
         }
+        .ignoresSafeArea(edges: .top)
+        .background(Color.black)
         .navigationTitle(show.name)
         #if os(iOS)
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         #endif
     }
 
-    @ViewBuilder
-    private var headerView: some View {
-        HStack(alignment: .top, spacing: 16) {
-            posterImage
-                .frame(width: 120)
-                .aspectRatio(2/3, contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+    // MARK: - Title
 
-            VStack(alignment: .leading, spacing: 8) {
-                if let year = show.firstAirYear {
-                    Text(String(year))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-
-                if let genres = show.formattedGenres {
-                    Text(genres)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                if let status = show.statusText {
-                    Text(status)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.secondary.opacity(0.2))
-                        .clipShape(Capsule())
-                }
-
-                if let rating = show.voteAverage, rating > 0 {
-                    HStack(spacing: 4) {
-                        Image(systemName: "star.fill")
-                            .foregroundColor(.yellow)
-                        Text(String(format: "%.1f", rating))
-                    }
-                    .font(.caption)
-                }
-            }
-        }
-        .padding(.vertical, 8)
-
-        if let overview = show.overview, !overview.isEmpty {
-            Text(overview)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-
-        // Stats
-        HStack(spacing: 24) {
-            VStack {
-                Text("\(show.numberOfSeasons)")
-                    .font(.title3.weight(.bold))
-                Text("Seasons")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            VStack {
-                Text("\(episodes.count)")
-                    .font(.title3.weight(.bold))
-                Text("Episodes")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
+    private var titleSection: some View {
+        Text(show.name)
+            #if os(iOS)
+            .font(.title.bold())
+            #elseif os(tvOS)
+            .font(.largeTitle.bold())
+            #endif
+            .foregroundStyle(.white)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
     }
 
+    // MARK: - Genre Line (dot-separated)
+
     @ViewBuilder
-    private var posterImage: some View {
-        CachedAsyncImage(
-            fileId: show.id,
-            posterPath: show.posterPath,
-            size: .detail
-        ) { image in
-            image
-                .resizable()
-                .scaledToFill()
-        } placeholder: {
-            ZStack {
-                Color.gray.opacity(0.2)
-                Image(systemName: "tv")
-                    .font(.largeTitle)
-                    .foregroundStyle(.secondary)
+    private var genreLine: some View {
+        let parts = ["TV Series"] + show.genres
+        if !show.genres.isEmpty {
+            Text(parts.joined(separator: " \u{00B7} "))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+        }
+    }
+
+    // MARK: - Metadata Line (status, year, rating)
+
+    @ViewBuilder
+    private var metadataLine: some View {
+        let parts = metadataComponents
+        if !parts.isEmpty {
+            HStack(spacing: 6) {
+                ForEach(Array(parts.enumerated()), id: \.offset) { index, part in
+                    if index > 0 {
+                        Text("\u{00B7}")
+                            .foregroundStyle(.secondary)
+                    }
+                    part
+                }
+            }
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    private var metadataComponents: [AnyView] {
+        var components: [AnyView] = []
+
+        if let status = show.statusText {
+            components.append(AnyView(Text(status)))
+        }
+
+        if let year = show.firstAirYear {
+            components.append(AnyView(Text(String(year))))
+        }
+
+        if let rating = show.voteAverage, rating > 0 {
+            components.append(AnyView(
+                HStack(spacing: 4) {
+                    Image(systemName: "star.fill")
+                        .foregroundStyle(.yellow)
+                    Text(String(format: "%.1f", rating))
+                }
+            ))
+        }
+
+        return components
+    }
+
+    // MARK: - Synopsis
+
+    @ViewBuilder
+    private var synopsisSection: some View {
+        if let overview = show.overview, !overview.isEmpty {
+            ExpandableText(text: overview, lineLimit: 3)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 8)
+        }
+    }
+
+    // MARK: - Stats Divider
+
+    private var statsDivider: some View {
+        Text("\(show.numberOfSeasons) Seasons \u{00B7} \(episodes.count) Episodes")
+            .font(.subheadline.weight(.medium))
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+    }
+
+    // MARK: - Seasons Section
+
+    private var seasonsSection: some View {
+        VStack(spacing: 0) {
+            ForEach(groupedSeasons, id: \.seasonNumber) { season in
+                NavigationLink {
+                    SeasonView(
+                        season: season.metadata ?? TVSeasonMetadata(
+                            seriesTmdbId: show.tmdbId,
+                            seasonNumber: season.seasonNumber,
+                            episodeCount: season.episodes.count
+                        ),
+                        showName: show.name,
+                        episodes: season.episodes,
+                        files: files,
+                        onPlayEpisode: onPlayEpisode
+                    )
+                } label: {
+                    seasonRow(season)
+                }
+                .buttonStyle(.plain)
+
+                if season.seasonNumber != groupedSeasons.last?.seasonNumber {
+                    Divider()
+                        .background(Color.white.opacity(0.1))
+                }
             }
         }
     }
 
     @ViewBuilder
     private func seasonRow(_ season: SeasonGroup) -> some View {
-        HStack {
+        HStack(spacing: 12) {
             if let metadata = season.metadata, let posterPath = metadata.posterPath,
                let url = TMDbService.posterURL(path: posterPath, size: .w92) {
                 AsyncImage(url: url) { phase in
@@ -158,6 +263,7 @@ struct TVShowDetailView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(season.metadata?.displayName ?? "Season \(season.seasonNumber)")
                     .font(.headline)
+                    .foregroundStyle(.white)
 
                 Text("\(season.episodes.count) episodes")
                     .font(.caption)
@@ -175,13 +281,13 @@ struct TVShowDetailView: View {
             Image(systemName: "chevron.right")
                 .foregroundStyle(.secondary)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 12)
     }
 
     @ViewBuilder
     private var seasonPlaceholder: some View {
         ZStack {
-            Color.gray.opacity(0.2)
+            Color.white.opacity(0.08)
             Image(systemName: "square.stack")
                 .foregroundStyle(.secondary)
         }
@@ -220,6 +326,7 @@ private struct SeasonGroup {
         name: "Game of Thrones",
         overview: "Seven noble families fight for control of the mythical land of Westeros.",
         posterPath: "/1XS1oqL89opfnbLl8WnZY1O1uJx.jpg",
+        backdropPath: "/suopoADq0k8YZr4dQXcU6pToj6s.jpg",
         numberOfSeasons: 8,
         numberOfEpisodes: 73,
         genres: ["Drama", "Fantasy"],

@@ -44,6 +44,7 @@ struct SourcesView: View {
             }
             .sheet(isPresented: $isShowingAddSheet) {
                 AddShareView(shareManager: shareManager)
+                    .presentationBackground(.black)
             }
             .alert("Error", isPresented: $isShowingError) {
                 Button("OK", role: .cancel) { }

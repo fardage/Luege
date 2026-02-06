@@ -113,7 +113,6 @@ struct MovieDetailView: View {
             }
             .ignoresSafeArea(edges: .top)
             .background(Color.black)
-            .preferredColorScheme(.dark)
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
