@@ -423,29 +423,47 @@
 
 ## E6: Playback State
 
-### E6-001: Remember playback position
-**As a** user who paused a movie,  
-**I want** playback to resume where I left off,  
+### E6-001: Remember playback position ✅
+**As a** user who paused a movie,
+**I want** playback to resume where I left off,
 **So that** I don't have to seek manually.
 
 **Acceptance Criteria:**
-- [ ] Position saved on pause, stop, or app exit
-- [ ] "Resume" prompt when selecting a partially watched file
-- [ ] Option to start from beginning instead
-- [ ] Position persists across app sessions
+- [x] Position saved on pause, stop, or app exit
+- [x] "Resume" prompt when selecting a partially watched file
+- [x] Option to start from beginning instead
+- [x] Position persists across app sessions
+
+**Implementation Notes:**
+- `PlaybackProgress` model stores fileId, currentTime, duration, isWatched, timestamps
+- `PlaybackProgressStorage` persists per-file JSON in `~/Library/Application Support/Luege/playback-progress/`
+- `PlaybackProgressService` (@MainActor) provides in-memory cache with `@Published` version counter
+- `VideoPlayerViewModel` saves progress every 30s during playback, immediately on pause/stop
+- `MovieDetailView` and `EpisodeDetailView` show "Resume from X:XX" + "Start from Beginning" buttons
+- Resume time threaded through view hierarchy via `startTime` parameter
+- `VideoPlayerViewModel.prepare()` seeks to `startTime` after engine ready
 
 ---
 
-### E6-002: Mark as watched/unwatched
-**As a** user managing my library,  
-**I want** to mark items as watched or unwatched,  
+### E6-002: Mark as watched/unwatched ✅
+**As a** user managing my library,
+**I want** to mark items as watched or unwatched,
 **So that** I know what I've seen.
 
 **Acceptance Criteria:**
-- [ ] Auto-mark as watched when >90% viewed
-- [ ] Manual toggle in item options menu
-- [ ] Visual indicator (checkmark/badge) on watched items
-- [ ] Filter library by watched status
+- [x] Auto-mark as watched when >90% viewed
+- [x] Manual toggle in item options menu
+- [x] Visual indicator (checkmark/badge) on watched items
+- [ ] Filter library by watched status (deferred to E6-003)
+
+**Implementation Notes:**
+- `PlaybackProgress.watchedThreshold = 0.90` — auto-marks at 90% via `saveProgress()`
+- Immediate save when crossing 90% threshold (bypasses 30s throttle) to prevent missed marks
+- `MoviePosterCard` shows green checkmark badge on trailing side next to title/year
+- `EpisodeRow` shows green checkmark badge next to episode name
+- `MovieDetailView` and `EpisodeDetailView` show "Watched" label and ellipsis Menu
+- Menu provides "Mark as Watched" / "Mark as Unwatched" toggle
+- 40 unit tests covering model, storage, and service layers
 
 ---
 

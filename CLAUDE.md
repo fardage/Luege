@@ -110,8 +110,9 @@ Types: `Implement`, `Add`, `Fix`, `Update`, `Refactor`
 ## Current Status
 
 ### Completed Stories
-E1-001 through E1-003 (Discovery & connections), E2-001/E2-002 (Browsing), E3-001 through E3-004 (Playback), E4-001 through E4-003 (Library), E5-001 (Movie metadata)
+E1-001 through E1-003 (Discovery & connections), E2-001/E2-002 (Browsing), E3-001 through E3-004 (Playback), E4-001 through E4-003 (Library), E5-001 (Movie metadata), E6-001/E6-002 (Playback progress & watched tracking)
 
 ### Next Stories
 - E5-002: Auto-fetch TV show metadata
+- E6-003: Continue Watching row
 - E7-002: Playback preferences (default audio track, subtitle styling)
