@@ -69,6 +69,7 @@ struct MovieLibraryFolderView: View {
                 }
             )
             .environmentObject(metadataService)
+            .presentationBackground(.black)
         }
         .fullScreenCover(item: $fileToPlay) { file in
             videoPlayerView(for: file)
