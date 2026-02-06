@@ -1,5 +1,13 @@
 import SwiftUI
 
+/// Pairs a library file with its resolved display title for sectioning
+private struct MovieItem: Identifiable {
+    let file: LibraryFile
+    let metadata: MovieMetadata?
+    let displayTitle: String
+    var id: UUID { file.id }
+}
+
 /// Grid view for displaying movie posters
 struct MovieGridView: View {
     let files: [LibraryFile]
@@ -17,28 +25,69 @@ struct MovieGridView: View {
     ]
     #endif
 
+    private var movieItems: [MovieItem] {
+        let parser = FilenameParser()
+        return files.map { file in
+            let metadata = metadataService.cachedMetadata(for: file)
+            let title: String
+            if let metadata, metadata.isMatched {
+                title = metadata.title
+            } else {
+                title = parser.parse(file.fileName).title
+            }
+            return MovieItem(file: file, metadata: metadata, displayTitle: title)
+        }
+    }
+
+    private var sections: [AlphabetSection<MovieItem>] {
+        alphabeticalSections(from: movieItems, nameKeyPath: \.displayTitle)
+    }
+
     var body: some View {
-        ScrollView {
-            LazyVGrid(columns: columns, spacing: 24) {
-                ForEach(files) { file in
-                    movieCard(for: file)
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(sections) { section in
+                        Text(section.letter)
+                            .font(.title2.bold())
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, 16)
+                            .padding(.bottom, 4)
+                            .padding(.horizontal)
+                            .id("section_\(section.letter)")
+
+                        LazyVGrid(columns: columns, spacing: 24) {
+                            ForEach(section.items) { item in
+                                movieCard(for: item)
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
                 }
             }
-            .padding()
+            #if !os(tvOS)
+            .overlay(alignment: .trailing) {
+                AlphabetSectionIndex(
+                    activeSections: Set(sections.map(\.letter))
+                ) { letter in
+                    withAnimation {
+                        proxy.scrollTo("section_\(letter)", anchor: .top)
+                    }
+                }
+                .padding(.trailing, 2)
+            }
+            #endif
         }
     }
 
     @ViewBuilder
-    private func movieCard(for file: LibraryFile) -> some View {
-        let metadata = metadataService.cachedMetadata(for: file)
-
-        if let metadata = metadata, metadata.isMatched {
+    private func movieCard(for item: MovieItem) -> some View {
+        if let metadata = item.metadata, metadata.isMatched {
             MoviePosterCard(metadata: metadata) {
-                onSelect(file, metadata)
+                onSelect(item.file, metadata)
             }
         } else {
-            // Show placeholder card for unmatched files
-            unMatchedCard(for: file, metadata: metadata)
+            unMatchedCard(for: item.file, metadata: item.metadata)
         }
     }
 

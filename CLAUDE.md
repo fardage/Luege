@@ -48,7 +48,12 @@ Snapshots are committed to the repo with platform suffixes (`.iOS.png`, `.tvOS.p
 
 ### Visual Verification with iOS Simulator MCP
 
-After any UI changes, **always verify visually** using the iOS Simulator MCP tools before committing:
+After any UI changes, **always verify visually** using the iOS Simulator MCP tools before committing.
+
+**Always use "iPhone 17" as the simulator device** for builds and MCP verification:
+```bash
+xcodebuild build -workspace Luege.xcworkspace -scheme "Luege iOS" -destination "platform=iOS Simulator,name=iPhone 17" -quiet
+```
 
 1. Build the iOS target, install via `mcp__ios-simulator__install_app`, launch with bundle ID `com.luege.app`
 2. Navigate through all affected screens using `ui_tap`, `ui_swipe`

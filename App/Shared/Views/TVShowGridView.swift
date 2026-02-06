@@ -18,19 +18,49 @@ struct TVShowGridView: View {
     ]
     #endif
 
+    private var sections: [AlphabetSection<TVShowMetadata>] {
+        alphabeticalSections(from: shows, nameKeyPath: \.name)
+    }
+
     var body: some View {
-        ScrollView {
-            LazyVGrid(columns: columns, spacing: 24) {
-                ForEach(shows) { show in
-                    TVShowPosterCard(
-                        show: show,
-                        episodeCount: episodeCountProvider(show.tmdbId)
-                    ) {
-                        onSelect(show)
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(sections) { section in
+                        Text(section.letter)
+                            .font(.title2.bold())
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, 16)
+                            .padding(.bottom, 4)
+                            .padding(.horizontal)
+                            .id("section_\(section.letter)")
+
+                        LazyVGrid(columns: columns, spacing: 24) {
+                            ForEach(section.items) { show in
+                                TVShowPosterCard(
+                                    show: show,
+                                    episodeCount: episodeCountProvider(show.tmdbId)
+                                ) {
+                                    onSelect(show)
+                                }
+                            }
+                        }
+                        .padding(.horizontal)
                     }
                 }
             }
-            .padding()
+            #if !os(tvOS)
+            .overlay(alignment: .trailing) {
+                AlphabetSectionIndex(
+                    activeSections: Set(sections.map(\.letter))
+                ) { letter in
+                    withAnimation {
+                        proxy.scrollTo("section_\(letter)", anchor: .top)
+                    }
+                }
+                .padding(.trailing, 2)
+            }
+            #endif
         }
     }
 }
