@@ -50,10 +50,10 @@ struct ContinueWatchingRow: View {
         }
     }
 
-    /// Leading inset to align with navigation large title
+    /// Leading inset to align content within the list row
     private var leadingInset: CGFloat {
         #if os(tvOS)
-        return 0
+        return 4
         #else
         return 20
         #endif
@@ -112,9 +112,10 @@ private struct ContinueWatchingCard: View {
             }
             .frame(width: cardWidth)
         }
-        .buttonStyle(.plain)
         #if os(tvOS)
-        .buttonStyle(.card)
+        .buttonStyle(ContinueWatchingCardButtonStyle())
+        #else
+        .buttonStyle(.plain)
         #endif
         .contextMenu {
             Button {
@@ -232,3 +233,18 @@ private struct ContinueWatchingCard: View {
         .padding(.bottom, 4)
     }
 }
+
+// MARK: - tvOS Focus Button Style
+
+#if os(tvOS)
+private struct ContinueWatchingCardButtonStyle: ButtonStyle {
+    @Environment(\.isFocused) private var isFocused
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(isFocused ? 1.05 : 1.0)
+            .shadow(color: .black.opacity(isFocused ? 0.3 : 0), radius: 10, y: 5)
+            .animation(.easeInOut(duration: 0.2), value: isFocused)
+    }
+}
+#endif
