@@ -89,13 +89,12 @@ struct MovieDetailView: View {
     @EnvironmentObject private var progressService: PlaybackProgressService
 
     var body: some View {
+        #if os(tvOS)
         NavigationStack {
             ScrollView {
                 VStack(spacing: 0) {
-                    // Cinematic backdrop
                     MovieDetailHeaderView(metadata: metadata)
 
-                    // Centered content below backdrop
                     VStack(spacing: 16) {
                         titleSection
                         genreLine
@@ -104,32 +103,45 @@ struct MovieDetailView: View {
                         synopsisSection
                         metadataInfoRow
                     }
-                    #if os(iOS)
-                    .padding(.horizontal, 20)
-                    #elseif os(tvOS)
                     .padding(.horizontal, 80)
-                    #endif
+                    .padding(.top, 16)
+                    .padding(.bottom, 60)
+                }
+            }
+            .ignoresSafeArea(edges: .top)
+            .background(Color.black)
+            .onPlayPauseCommand { onPlay(fileProgress?.currentTime) }
+        }
+        .onExitCommand { onDismiss() }
+        #else
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 0) {
+                    MovieDetailHeaderView(metadata: metadata)
+
+                    VStack(spacing: 16) {
+                        titleSection
+                        genreLine
+                        watchedLabel
+                        buttonRow
+                        synopsisSection
+                        metadataInfoRow
+                    }
+                    .padding(.horizontal, 20)
                     .padding(.top, 16)
                     .padding(.bottom, 40)
                 }
             }
             .ignoresSafeArea(edges: .top)
             .background(Color.black)
-            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { onDismiss() }
                 }
             }
-            #elseif os(tvOS)
-            .toolbar {
-                ToolbarItem(placement: .automatic) {
-                    Button("Close") { onDismiss() }
-                }
-            }
-            #endif
         }
+        #endif
     }
 
     // MARK: - Title
@@ -203,6 +215,25 @@ struct MovieDetailView: View {
                 .buttonStyle(.adaptiveGlassProminent)
             }
 
+            #if os(tvOS)
+            if progressService.isWatched(file.id) {
+                Button {
+                    progressService.markAsUnwatched(fileId: file.id)
+                } label: {
+                    Label("Mark as Unwatched", systemImage: "eye.slash")
+                        .font(.subheadline)
+                }
+                .buttonStyle(.adaptiveGlass)
+            } else {
+                Button {
+                    progressService.markAsWatched(fileId: file.id)
+                } label: {
+                    Label("Mark as Watched", systemImage: "eye")
+                        .font(.subheadline)
+                }
+                .buttonStyle(.adaptiveGlass)
+            }
+            #else
             Menu {
                 if progressService.isWatched(file.id) {
                     Button {
@@ -225,6 +256,7 @@ struct MovieDetailView: View {
                     .background(Color.white.opacity(0.15))
                     .clipShape(Circle())
             }
+            #endif
         }
         .padding(.top, 4)
         .frame(maxWidth: .infinity)

@@ -52,29 +52,16 @@ struct MovieLibraryFolderView: View {
         .task {
             await fetchMetadataIfNeeded()
         }
-        .sheet(item: $selectedFile) { file in
-            let metadata = selectedMetadata ?? metadataService.cachedMetadata(for: file) ?? placeholderMetadata(for: file)
-            MovieDetailView(
-                metadata: metadata,
-                file: file,
-                onPlay: { startTime in
-                    // Close detail sheet and open player
-                    let fileToOpen = file
-                    selectedFile = nil
-                    resumeStartTime = startTime
-                    // Small delay to let sheet dismiss
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        fileToPlay = fileToOpen
-                    }
-                },
-                onDismiss: {
-                    selectedFile = nil
-                }
-            )
-            .environmentObject(metadataService)
-            .environmentObject(progressService)
-            .presentationBackground(.black)
+        #if os(tvOS)
+        .fullScreenCover(item: $selectedFile) { file in
+            movieDetailContent(for: file)
         }
+        #else
+        .sheet(item: $selectedFile) { file in
+            movieDetailContent(for: file)
+                .presentationBackground(.black)
+        }
+        #endif
         .fullScreenCover(item: $fileToPlay) { file in
             videoPlayerView(for: file)
                 .onDisappear { resumeStartTime = nil }
@@ -94,6 +81,28 @@ struct MovieLibraryFolderView: View {
     }
 
     // MARK: - Views
+
+    @ViewBuilder
+    private func movieDetailContent(for file: LibraryFile) -> some View {
+        let metadata = selectedMetadata ?? metadataService.cachedMetadata(for: file) ?? placeholderMetadata(for: file)
+        MovieDetailView(
+            metadata: metadata,
+            file: file,
+            onPlay: { startTime in
+                let fileToOpen = file
+                selectedFile = nil
+                resumeStartTime = startTime
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    fileToPlay = fileToOpen
+                }
+            },
+            onDismiss: {
+                selectedFile = nil
+            }
+        )
+        .environmentObject(metadataService)
+        .environmentObject(progressService)
+    }
 
     @ViewBuilder
     private func videoPlayerView(for file: LibraryFile) -> some View {
