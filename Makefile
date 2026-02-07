@@ -2,7 +2,7 @@
 
 # Run unit tests (no network required)
 test-unit:
-	xcodebuild test -workspace Luege.xcworkspace -scheme "LuegeCoreTests iOS" -destination "platform=iOS Simulator,name=iPhone 17" -quiet
+	xcodebuild test -workspace Luege.xcworkspace -scheme "LuegeCoreTests iOS" -destination "platform=iOS Simulator,name=iPhone 17" -parallel-testing-enabled NO -quiet
 
 # Run integration tests with Docker (starts/stops server automatically)
 test-integration:
