@@ -121,34 +121,42 @@ struct LibraryView: View {
 
     @ViewBuilder
     private var libraryList: some View {
-        List {
-            Text("Library")
-                .font(.title3.bold())
-                .listRowBackground(Color.clear)
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                Text("Library")
+                    .font(.title3.bold())
+                    .padding(.leading, 50)
+                    .padding(.bottom, 16)
 
-            ContinueWatchingRow { file, folder, share, startTime in
-                resumeStartTime = startTime
-                fileToPlayShare = share
-                fileToPlay = file
-            }
-            .listRowBackground(Color.clear)
+                ContinueWatchingRow { file, folder, share, startTime in
+                    resumeStartTime = startTime
+                    fileToPlayShare = share
+                    fileToPlay = file
+                }
+                .focusSection()
 
-            RecentlyAddedMoviesRow { file, metadata in
-                selectedMovieMetadata = metadata
-                selectedMovieFile = file
-            }
-            .listRowBackground(Color.clear)
+                RecentlyAddedMoviesRow { file, metadata in
+                    selectedMovieMetadata = metadata
+                    selectedMovieFile = file
+                }
+                .focusSection()
 
-            RecentlyAddedTVShowsRow { show, episodes, files in
-                selectedTVShowEpisodes = episodes
-                selectedTVShowFiles = files
-                selectedTVShow = show
-            }
-            .listRowBackground(Color.clear)
+                RecentlyAddedTVShowsRow { show, episodes, files in
+                    selectedTVShowEpisodes = episodes
+                    selectedTVShowFiles = files
+                    selectedTVShow = show
+                }
+                .focusSection()
 
-            // All content types use the same row style
-            ForEach(activeContentTypes) { contentType in
-                Section(contentType.displayName) {
+                // All content types use the same row style
+                ForEach(activeContentTypes) { contentType in
+                    Text(contentType.displayName)
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
+                        .padding(.leading, 50)
+                        .padding(.top, 24)
+                        .padding(.bottom, 8)
+
                     ForEach(folders(for: contentType)) { folder in
                         LibraryFolderRow(
                             folder: folder,
@@ -166,11 +174,11 @@ struct LibraryView: View {
                                 }
                             }
                         )
+                        .padding(.horizontal, 50)
                     }
                 }
             }
         }
-        .listStyle(.plain)
     }
 
     // MARK: - Computed Properties

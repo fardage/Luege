@@ -13,7 +13,7 @@ struct ContinueWatchingRow: View {
         // Reference progressVersion to track changes
         let _ = progressService.progressVersion
 
-        let items = progressService.resumableItems()
+        let items = progressService.resumableItems().filter { libraryService.file(for: $0.fileId) != nil }
 
         if !items.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
