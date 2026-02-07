@@ -480,10 +480,10 @@
 **So that** I can quickly resume watching.
 
 **Acceptance Criteria:**
-- [ ] "Continue Watching" row shows items with saved position
-- [ ] Sorted by last played date
-- [ ] Shows progress bar indicator
-- [ ] Remove from row option
+- [x] "Continue Watching" row shows items with saved position
+- [x] Sorted by last played date
+- [x] Shows progress bar indicator
+- [x] Remove from row option
 
 ---
 
