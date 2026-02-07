@@ -127,6 +127,26 @@ final class LibraryService: ObservableObject {
         libraryFolders.filter { $0.contentType == contentType }
     }
 
+    /// Look up a library file by ID across all folders
+    func file(for fileId: UUID) -> LibraryFile? {
+        for folder in libraryFolders {
+            if let file = files(for: folder.id).first(where: { $0.id == fileId }) {
+                return file
+            }
+        }
+        return nil
+    }
+
+    /// Look up the folder containing a file by file ID
+    func folder(for fileId: UUID) -> LibraryFolder? {
+        for folder in libraryFolders {
+            if files(for: folder.id).contains(where: { $0.id == fileId }) {
+                return folder
+            }
+        }
+        return nil
+    }
+
     /// Rescan a library folder (full index, not just count)
     func rescanFolder(
         _ folder: LibraryFolder,

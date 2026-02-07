@@ -98,6 +98,21 @@ final class PlaybackProgressService: ObservableObject {
         cache[fileId]?.isResumable ?? false
     }
 
+    /// Get all resumable items sorted by last played date (most recent first)
+    func resumableItems() -> [PlaybackProgress] {
+        cache.values
+            .filter { $0.isResumable }
+            .sorted { $0.lastPlayedAt > $1.lastPlayedAt }
+    }
+
+    /// Delete progress for a file (e.g., remove from Continue Watching)
+    func deleteProgress(for fileId: UUID) {
+        cache.removeValue(forKey: fileId)
+        progressVersion += 1
+        let storage = self.storage
+        Task.detached { try? storage.delete(for: fileId) }
+    }
+
     // MARK: - Private
 
     private func loadCache() {

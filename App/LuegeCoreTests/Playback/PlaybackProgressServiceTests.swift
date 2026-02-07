@@ -160,4 +160,109 @@ final class PlaybackProgressServiceTests: XCTestCase {
     func testIsWatchedReturnsFalseForUnknownFile() {
         XCTAssertFalse(service.isWatched(UUID()))
     }
+
+    // MARK: - Resumable Items
+
+    func testResumableItemsReturnsOnlyResumable() {
+        let resumableId = UUID()
+        let watchedId = UUID()
+        let tooEarlyId = UUID()
+
+        mockStorage.setProgress(PlaybackProgress(
+            fileId: resumableId, currentTime: 600, duration: 7200,
+            isWatched: false, lastPlayedAt: Date(), updatedAt: Date()
+        ))
+        mockStorage.setProgress(PlaybackProgress(
+            fileId: watchedId, currentTime: 6600, duration: 7200,
+            isWatched: true, lastPlayedAt: Date(), updatedAt: Date()
+        ))
+        mockStorage.setProgress(PlaybackProgress(
+            fileId: tooEarlyId, currentTime: 15, duration: 7200,
+            isWatched: false, lastPlayedAt: Date(), updatedAt: Date()
+        ))
+
+        let newService = PlaybackProgressService(storage: mockStorage)
+        let items = newService.resumableItems()
+        XCTAssertEqual(items.count, 1)
+        XCTAssertEqual(items.first?.fileId, resumableId)
+    }
+
+    func testResumableItemsSortedByLastPlayed() {
+        let now = Date()
+        let olderId = UUID()
+        let newerId = UUID()
+        let newestId = UUID()
+
+        mockStorage.setProgress(PlaybackProgress(
+            fileId: olderId, currentTime: 600, duration: 7200,
+            isWatched: false, lastPlayedAt: now.addingTimeInterval(-3600), updatedAt: now
+        ))
+        mockStorage.setProgress(PlaybackProgress(
+            fileId: newerId, currentTime: 600, duration: 7200,
+            isWatched: false, lastPlayedAt: now.addingTimeInterval(-1800), updatedAt: now
+        ))
+        mockStorage.setProgress(PlaybackProgress(
+            fileId: newestId, currentTime: 600, duration: 7200,
+            isWatched: false, lastPlayedAt: now, updatedAt: now
+        ))
+
+        let newService = PlaybackProgressService(storage: mockStorage)
+        let items = newService.resumableItems()
+        XCTAssertEqual(items.count, 3)
+        XCTAssertEqual(items[0].fileId, newestId)
+        XCTAssertEqual(items[1].fileId, newerId)
+        XCTAssertEqual(items[2].fileId, olderId)
+    }
+
+    func testResumableItemsExcludesWatched() {
+        mockStorage.setProgress(PlaybackProgress(
+            fileId: UUID(), currentTime: 3600, duration: 7200,
+            isWatched: true, lastPlayedAt: Date(), updatedAt: Date()
+        ))
+
+        let newService = PlaybackProgressService(storage: mockStorage)
+        XCTAssertTrue(newService.resumableItems().isEmpty)
+    }
+
+    func testResumableItemsExcludesUnderThirtySeconds() {
+        mockStorage.setProgress(PlaybackProgress(
+            fileId: UUID(), currentTime: 25, duration: 7200,
+            isWatched: false, lastPlayedAt: Date(), updatedAt: Date()
+        ))
+
+        let newService = PlaybackProgressService(storage: mockStorage)
+        XCTAssertTrue(newService.resumableItems().isEmpty)
+    }
+
+    // MARK: - Delete Progress
+
+    func testDeleteProgressRemovesFromCache() {
+        let fileId = UUID()
+        service.saveProgress(fileId: fileId, currentTime: 600, duration: 7200)
+        XCTAssertNotNil(service.progress(for: fileId))
+
+        service.deleteProgress(for: fileId)
+        XCTAssertNil(service.progress(for: fileId))
+    }
+
+    func testDeleteProgressIncrementsVersion() {
+        let fileId = UUID()
+        service.saveProgress(fileId: fileId, currentTime: 600, duration: 7200)
+        let versionBefore = service.progressVersion
+
+        service.deleteProgress(for: fileId)
+        XCTAssertGreaterThan(service.progressVersion, versionBefore)
+    }
+
+    func testDeleteProgressDelegatesToStorage() async throws {
+        let fileId = UUID()
+        service.saveProgress(fileId: fileId, currentTime: 600, duration: 7200)
+        let deleteCountBefore = mockStorage.deleteCallCount
+
+        service.deleteProgress(for: fileId)
+
+        // Give the detached task time to execute
+        try await Task.sleep(nanoseconds: 100_000_000)
+        XCTAssertGreaterThan(mockStorage.deleteCallCount, deleteCountBefore)
+    }
 }

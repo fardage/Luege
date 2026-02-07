@@ -4,11 +4,15 @@ struct LibraryView: View {
     @EnvironmentObject private var libraryService: LibraryService
     @EnvironmentObject private var shareManager: ShareManager
     @EnvironmentObject private var metadataService: MetadataService
+    @EnvironmentObject private var progressService: PlaybackProgressService
     @Binding var selectedTab: Int
 
     @State private var selectedFolder: LibraryFolder?
     @State private var folderToRemove: LibraryFolder?
     @State private var isShowingRemoveConfirmation = false
+    @State private var fileToPlay: LibraryFile?
+    @State private var fileToPlayShare: SavedShare?
+    @State private var resumeStartTime: TimeInterval?
 
     var body: some View {
         NavigationStack {
@@ -72,6 +76,15 @@ struct LibraryView: View {
                     )
                 }
             }
+            .fullScreenCover(item: $fileToPlay) { file in
+                if let share = fileToPlayShare {
+                    videoPlayerView(for: file, share: share)
+                        .onDisappear {
+                            resumeStartTime = nil
+                            fileToPlayShare = nil
+                        }
+                }
+            }
             .confirmationDialog(
                 "Remove from Library",
                 isPresented: $isShowingRemoveConfirmation,
@@ -97,6 +110,17 @@ struct LibraryView: View {
     @ViewBuilder
     private var libraryList: some View {
         List {
+            ContinueWatchingRow { file, folder, share, startTime in
+                resumeStartTime = startTime
+                fileToPlayShare = share
+                fileToPlay = file
+            }
+            #if os(iOS)
+            .listRowInsets(EdgeInsets())
+            .listRowSeparator(.hidden)
+            #endif
+            .listRowBackground(Color.clear)
+
             // All content types use the same row style
             ForEach(activeContentTypes) { contentType in
                 Section(contentType.displayName) {
@@ -121,6 +145,7 @@ struct LibraryView: View {
                 }
             }
         }
+        .listStyle(.plain)
         #if os(iOS)
         .refreshable {
             await shareManager.refreshAllStatuses()
@@ -179,6 +204,37 @@ struct LibraryView: View {
 
         let credentials = try? await shareManager.credentials(for: share)
         await libraryService.rescanFolder(folder, share: share, credentials: credentials)
+    }
+
+    @ViewBuilder
+    private func videoPlayerView(for file: LibraryFile, share: SavedShare) -> some View {
+        let folder = libraryService.folder(for: file.id)
+        let fullPath: String = {
+            guard let folder = folder else { return file.relativePath }
+            if folder.path.isEmpty {
+                return file.relativePath
+            }
+            return "\(folder.path)/\(file.relativePath)"
+        }()
+
+        let fileEntry = FileEntry(
+            id: file.id,
+            name: file.fileName,
+            path: fullPath,
+            type: .file,
+            size: file.size,
+            modifiedDate: file.modifiedDate
+        )
+
+        VideoPlayerView(
+            video: fileEntry,
+            share: share,
+            credentialProvider: { [weak shareManager] in
+                try await shareManager?.credentials(for: share)
+            },
+            progressService: progressService,
+            startTime: resumeStartTime
+        )
     }
 
     private func refreshLibrary() {
@@ -257,4 +313,6 @@ private struct ScanProgressBanner: View {
     LibraryView(selectedTab: .constant(0))
         .environmentObject(LibraryService())
         .environmentObject(ShareManager())
+        .environmentObject(MetadataService())
+        .environmentObject(PlaybackProgressService())
 }
