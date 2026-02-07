@@ -393,18 +393,25 @@
 
 ---
 
-### E5-002: Auto-fetch TV show metadata
+### E5-002: Auto-fetch TV show metadata ✅
 **As a** user with TV series,
 **I want** episodes grouped by show and season with episode info,
 **So that** I can easily navigate series.
 
 **Acceptance Criteria:**
-- [ ] Parse show name, season, episode from filename (e.g., "Show S01E03")
-- [ ] Fetch series poster, episode thumbnails, episode titles
-- [ ] Group episodes under Show → Season → Episode hierarchy
-- [ ] Display episode synopsis and air date
+- [x] Parse show name, season, episode from filename (e.g., "Show S01E03")
+- [x] Fetch series poster, episode thumbnails, episode titles
+- [x] Group episodes under Show → Season → Episode hierarchy
+- [x] Display episode synopsis and air date
 
-**Notes:** Requires extending `FilenameParser` for TV show patterns (S01E03, 1x03, etc.) and adding TV-specific TMDb API calls.
+**Implementation Notes:**
+- `TVShowFilenameParser` supports multiple patterns: S01E03, 1x03, Season X Episode Y, multi-episode (S01E03-E04)
+- `MetadataService.fetchTVEpisodeMetadata()` fetches series, season, and episode metadata from TMDb
+- `TVShowMetadata`, `TVSeasonMetadata`, `TVEpisodeMetadata` models with match status tracking
+- `MetadataStorage` extended with TV-specific persistence in `metadata/tv/` directory
+- `TVShowLibraryFolderView` auto-fetches metadata on folder load with progress overlay
+- View hierarchy: `TVShowGridView` → `TVShowDetailView` → `SeasonView` → `EpisodeDetailView`
+- `ArtworkCache` extended for episode still images
 
 ---
 
