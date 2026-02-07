@@ -14,6 +14,21 @@ struct MoviePosterCard: View {
         // Reference progressVersion to track changes
         let _ = progressService.progressVersion
 
+        #if os(tvOS)
+        VStack(alignment: .leading, spacing: 8) {
+            Button(action: onTap) {
+                posterImage
+                    .aspectRatio(posterAspectRatio, contentMode: .fit)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(alignment: .bottom) {
+                        progressBar
+                    }
+            }
+            .buttonStyle(PosterButtonStyle())
+
+            textLabels
+        }
+        #else
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: 8) {
                 posterImage
@@ -23,36 +38,40 @@ struct MoviePosterCard: View {
                         progressBar
                     }
 
-                HStack(alignment: .center, spacing: 6) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(metadata.title)
-                            .font(.caption.weight(.medium))
-                            .lineLimit(2)
-                            .multilineTextAlignment(.leading)
-
-                        Text(metadata.year.map(String.init) ?? " ")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    if progressService.isWatched(metadata.id) {
-                        Spacer(minLength: 0)
-
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
-                            #if os(iOS)
-                            .font(.system(size: 16))
-                            #elseif os(tvOS)
-                            .font(.system(size: 22))
-                            #endif
-                    }
-                }
+                textLabels
             }
         }
         .buttonStyle(.plain)
-        #if os(tvOS)
-        .buttonStyle(.card)
         #endif
+    }
+
+    // MARK: - Text Labels
+
+    private var textLabels: some View {
+        HStack(alignment: .center, spacing: 6) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(metadata.title)
+                    .font(.caption.weight(.medium))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+
+                Text(metadata.year.map(String.init) ?? " ")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+
+            if progressService.isWatched(metadata.id) {
+                Spacer(minLength: 0)
+
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                    #if os(iOS)
+                    .font(.system(size: 16))
+                    #elseif os(tvOS)
+                    .font(.system(size: 22))
+                    #endif
+            }
+        }
     }
 
     // MARK: - Progress Bar

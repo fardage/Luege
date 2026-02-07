@@ -20,7 +20,7 @@ struct RecentlyAddedTVShowsRow: View {
                     .padding(.leading, leadingInset)
 
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: cardSpacing) {
+                    LazyHStack(spacing: cardSpacing) {
                         ForEach(shows, id: \.show.id) { item in
                             TVShowPosterCard(
                                 show: item.show,
@@ -28,9 +28,10 @@ struct RecentlyAddedTVShowsRow: View {
                             ) {
                                 onSelect(item.show, item.episodes, item.files)
                             }
-                            .frame(width: cardWidth)
                             #if os(tvOS)
-                            .buttonStyle(RecentlyAddedTVCardButtonStyle())
+                            .containerRelativeFrame(.horizontal, count: 7, spacing: 40)
+                            #else
+                            .frame(width: cardWidth)
                             #endif
                         }
                     }
@@ -126,25 +127,6 @@ struct RecentlyAddedTVShowsRow: View {
     }
 
     private var cardWidth: CGFloat {
-        #if os(tvOS)
-        return 200
-        #else
         return 130
-        #endif
     }
 }
-
-// MARK: - tvOS Focus Button Style
-
-#if os(tvOS)
-private struct RecentlyAddedTVCardButtonStyle: ButtonStyle {
-    @Environment(\.isFocused) private var isFocused
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(isFocused ? 1.05 : 1.0)
-            .shadow(color: .black.opacity(isFocused ? 0.3 : 0), radius: 10, y: 5)
-            .animation(.easeInOut(duration: 0.2), value: isFocused)
-    }
-}
-#endif

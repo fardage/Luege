@@ -22,7 +22,7 @@ struct ContinueWatchingRow: View {
                     .padding(.leading, leadingInset)
 
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: cardSpacing) {
+                    LazyHStack(spacing: cardSpacing) {
                         ForEach(items, id: \.fileId) { progress in
                             if let file = libraryService.file(for: progress.fileId) {
                                 ContinueWatchingCard(
@@ -90,6 +90,25 @@ private struct ContinueWatchingCard: View {
     private let posterAspectRatio: CGFloat = 2 / 3
 
     var body: some View {
+        #if os(tvOS)
+        VStack(alignment: .leading, spacing: 8) {
+            Button(action: onTap) {
+                posterImage
+                    .aspectRatio(posterAspectRatio, contentMode: .fit)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(alignment: .bottom) {
+                        progressBar
+                    }
+            }
+            .buttonStyle(PosterButtonStyle())
+
+            textLabels
+        }
+        .containerRelativeFrame(.horizontal, count: 7, spacing: 40)
+        .contextMenu {
+            contextMenuItems
+        }
+        #else
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: 8) {
                 posterImage
@@ -99,47 +118,49 @@ private struct ContinueWatchingCard: View {
                         progressBar
                     }
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(displayTitle)
-                        .font(.caption.weight(.medium))
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-
-                    Text(remainingTimeText)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
+                textLabels
             }
             .frame(width: cardWidth)
         }
-        #if os(tvOS)
-        .buttonStyle(ContinueWatchingCardButtonStyle())
-        #else
         .buttonStyle(.plain)
-        #endif
         .contextMenu {
-            Button {
-                onMarkWatched()
-            } label: {
-                Label("Mark as Watched", systemImage: "checkmark.circle")
-            }
+            contextMenuItems
+        }
+        #endif
+    }
 
-            Button(role: .destructive) {
-                onRemove()
-            } label: {
-                Label("Remove from Continue Watching", systemImage: "xmark.circle")
-            }
+    @ViewBuilder
+    private var contextMenuItems: some View {
+        Button {
+            onMarkWatched()
+        } label: {
+            Label("Mark as Watched", systemImage: "checkmark.circle")
+        }
+
+        Button(role: .destructive) {
+            onRemove()
+        } label: {
+            Label("Remove from Continue Watching", systemImage: "xmark.circle")
         }
     }
 
     // MARK: - Computed Properties
 
     private var cardWidth: CGFloat {
-        #if os(tvOS)
-        return 200
-        #else
         return 130
-        #endif
+    }
+
+    private var textLabels: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(displayTitle)
+                .font(.caption.weight(.medium))
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+
+            Text(remainingTimeText)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
     }
 
     private var displayTitle: String {
@@ -234,17 +255,3 @@ private struct ContinueWatchingCard: View {
     }
 }
 
-// MARK: - tvOS Focus Button Style
-
-#if os(tvOS)
-private struct ContinueWatchingCardButtonStyle: ButtonStyle {
-    @Environment(\.isFocused) private var isFocused
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(isFocused ? 1.05 : 1.0)
-            .shadow(color: .black.opacity(isFocused ? 0.3 : 0), radius: 10, y: 5)
-            .animation(.easeInOut(duration: 0.2), value: isFocused)
-    }
-}
-#endif

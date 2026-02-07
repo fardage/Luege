@@ -11,41 +11,57 @@ struct TVShowPosterCard: View {
     private let posterAspectRatio: CGFloat = 2 / 3
 
     var body: some View {
+        #if os(tvOS)
+        VStack(alignment: .leading, spacing: 8) {
+            Button(action: onTap) {
+                posterImage
+                    .aspectRatio(posterAspectRatio, contentMode: .fit)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+            .buttonStyle(PosterButtonStyle())
+
+            textLabels
+        }
+        #else
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: 8) {
                 posterImage
                     .aspectRatio(posterAspectRatio, contentMode: .fit)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(show.name)
-                        .font(.caption.weight(.medium))
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-
-                    HStack(spacing: 4) {
-                        if let year = show.firstAirYear {
-                            Text(String(year))
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        if episodeCount > 0 {
-                            Text("·")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                            Text("\(episodeCount) episodes")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
+                textLabels
             }
         }
         .buttonStyle(.plain)
-        #if os(tvOS)
-        .buttonStyle(.card)
         #endif
+    }
+
+    // MARK: - Text Labels
+
+    private var textLabels: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(show.name)
+                .font(.caption.weight(.medium))
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+
+            HStack(spacing: 4) {
+                if let year = show.firstAirYear {
+                    Text(String(year))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+
+                if episodeCount > 0 {
+                    Text("·")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Text("\(episodeCount) episodes")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
     }
 
     @ViewBuilder
