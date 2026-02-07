@@ -35,7 +35,6 @@ struct FolderBrowserView: View {
             contentView
         }
         .navigationTitle("Browse")
-        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .automatic) {
                 if viewModel.isLoading {
@@ -46,7 +45,7 @@ struct FolderBrowserView: View {
                             await viewModel.refresh()
                         }
                     } label: {
-                        Label("Refresh", systemImage: "arrow.clockwise")
+                        Image(systemName: "arrow.clockwise")
                     }
                 }
             }
@@ -55,10 +54,7 @@ struct FolderBrowserView: View {
                 Button {
                     viewModel.showAllFiles.toggle()
                 } label: {
-                    Label(
-                        viewModel.showAllFiles ? "Show Videos Only" : "Show All Files",
-                        systemImage: viewModel.showAllFiles ? "film" : "doc.on.doc"
-                    )
+                    Image(systemName: viewModel.showAllFiles ? "film" : "doc.on.doc")
                 }
             }
         }
@@ -69,9 +65,6 @@ struct FolderBrowserView: View {
             Task {
                 await viewModel.disconnect()
             }
-        }
-        .refreshable {
-            await viewModel.refresh()
         }
         .fullScreenCover(item: $selectedVideo) { video in
             VideoPlayerView(
@@ -175,7 +168,6 @@ struct FolderBrowserView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    /// Check if folder has non-video files that are hidden by the filter
     private var hasNonVideoFiles: Bool {
         !viewModel.showAllFiles && !viewModel.entries.isEmpty
     }
@@ -198,16 +190,6 @@ struct FolderBrowserView: View {
                             Label("Add to Library", systemImage: "plus.rectangle.on.folder")
                         }
                     }
-                }
-            }
-            .swipeActions(edge: .trailing) {
-                if entry.isFolder && !viewModel.isInLibrary(entry) {
-                    Button {
-                        folderToAddToLibrary = entry
-                    } label: {
-                        Label("Add to Library", systemImage: "plus.rectangle.on.folder")
-                    }
-                    .tint(.green)
                 }
             }
         }

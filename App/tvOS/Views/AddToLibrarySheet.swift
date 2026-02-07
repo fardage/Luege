@@ -23,13 +23,11 @@ struct AddToLibrarySheet: View {
     var body: some View {
         NavigationStack {
             formContent
-                .navigationTitle("Add to Library")
-                .navigationBarTitleDisplayMode(.inline)
+                .navigationTitle("Add Folder")
                 .toolbar {
                     toolbarContent
                 }
         }
-        .presentationDetents([.medium])
     }
 
     @ViewBuilder

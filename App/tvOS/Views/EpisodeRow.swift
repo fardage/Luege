@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A row displaying episode information with thumbnail
+/// A row displaying episode information with thumbnail (tvOS)
 struct EpisodeRow: View {
     let episode: TVEpisodeMetadata
     let onTap: () -> Void
@@ -17,7 +17,7 @@ struct EpisodeRow: View {
         Button(action: onTap) {
             HStack(alignment: .center, spacing: 12) {
                 stillImage
-                    .frame(width: stillWidth, height: stillWidth / stillAspectRatio)
+                    .frame(width: 240, height: 240 / stillAspectRatio)
                     .clipShape(RoundedRectangle(cornerRadius: 6))
                     .overlay(alignment: .bottom) {
                         episodeProgressBar
@@ -42,7 +42,7 @@ struct EpisodeRow: View {
                         if progressService.isWatched(episode.id) {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(.green)
-                                .font(.system(size: 12))
+                                .font(.system(size: 18))
                         }
 
                         Text(episode.name)
@@ -67,11 +67,7 @@ struct EpisodeRow: View {
                 Spacer()
             }
         }
-        .buttonStyle(.plain)
-    }
-
-    private var stillWidth: CGFloat {
-        return 120
+        .buttonStyle(.card)
     }
 
     @ViewBuilder
@@ -140,26 +136,4 @@ struct EpisodeRow: View {
             .padding(.bottom, 4)
         }
     }
-}
-
-#Preview {
-    let episode = TVEpisodeMetadata(
-        id: UUID(),
-        seriesTmdbId: 1399,
-        seasonNumber: 1,
-        episodeNumber: 1,
-        name: "Winter Is Coming",
-        overview: "Lord Eddard Stark is summoned to court by his old friend, King Robert Baratheon.",
-        stillPath: "/wrGWeW4WKxnaeA8sxJb2T9O6ryo.jpg",
-        airDate: Date(),
-        runtime: 62
-    )
-
-    return List {
-        EpisodeRow(episode: episode) {
-            print("Tapped")
-        }
-    }
-    .environmentObject(MetadataService())
-    .environmentObject(PlaybackProgressService())
 }

@@ -1,19 +1,16 @@
 import SwiftUI
 
-/// A view for selecting subtitle tracks during video playback
+/// A view for selecting subtitle tracks during video playback (tvOS)
 struct SubtitleTrackSelectionView: View {
     @ObservedObject var viewModel: VideoPlayerViewModel
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
             header
-
-            // Track list
             trackList
         }
         .background(backgroundStyle)
+        .focusSection()
     }
 
     // MARK: - Header
@@ -25,14 +22,6 @@ struct SubtitleTrackSelectionView: View {
                 .foregroundStyle(.white)
 
             Spacer()
-
-            Button {
-                viewModel.hideSubtitleMenu()
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.title2)
-                    .foregroundStyle(.white.opacity(0.8))
-            }
         }
         .padding()
     }
@@ -42,10 +31,8 @@ struct SubtitleTrackSelectionView: View {
     private var trackList: some View {
         ScrollView {
             VStack(spacing: 4) {
-                // Off option
                 offRow
 
-                // Subtitle tracks
                 ForEach(viewModel.subtitleTracks) { track in
                     trackRow(track)
                 }
@@ -60,12 +47,8 @@ struct SubtitleTrackSelectionView: View {
 
         return Button {
             viewModel.selectSubtitleTrack(at: nil)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                viewModel.hideSubtitleMenu()
-            }
         } label: {
             HStack(spacing: 12) {
-                // Checkmark
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
                     .foregroundStyle(isSelected ? .white : .white.opacity(0.5))
@@ -82,6 +65,7 @@ struct SubtitleTrackSelectionView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .focusable()
     }
 
     private func trackRow(_ track: SubtitleTrack) -> some View {
@@ -89,17 +73,12 @@ struct SubtitleTrackSelectionView: View {
 
         return Button {
             viewModel.selectSubtitleTrack(at: track.index)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                viewModel.hideSubtitleMenu()
-            }
         } label: {
             HStack(spacing: 12) {
-                // Checkmark
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
                     .foregroundStyle(isSelected ? .white : .white.opacity(0.5))
 
-                // Track info
                 VStack(alignment: .leading, spacing: 2) {
                     Text(track.displayName)
                         .font(.body)
@@ -128,6 +107,7 @@ struct SubtitleTrackSelectionView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .focusable()
     }
 
     @ViewBuilder

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// View for displaying movies from a library folder with poster grid
+/// View for displaying movies from a library folder with poster grid (tvOS)
 struct MovieLibraryFolderView: View {
     let folder: LibraryFolder
     let share: SavedShare
@@ -28,7 +28,7 @@ struct MovieLibraryFolderView: View {
             } else {
                 MovieGridView(files: files) { file, metadata in
                     selectedMetadata = metadata
-                    selectedFile = file  // Set file last to trigger sheet
+                    selectedFile = file
                 }
             }
         }
@@ -40,7 +40,7 @@ struct MovieLibraryFolderView: View {
                         await rescanFolder()
                     }
                 } label: {
-                    Label("Refresh", systemImage: "arrow.clockwise")
+                    Image(systemName: "arrow.clockwise")
                 }
                 .disabled(isScanning)
             }
@@ -48,9 +48,8 @@ struct MovieLibraryFolderView: View {
         .task {
             await fetchMetadataIfNeeded()
         }
-        .sheet(item: $selectedFile) { file in
+        .fullScreenCover(item: $selectedFile) { file in
             movieDetailContent(for: file)
-                .presentationBackground(.black)
         }
         .fullScreenCover(item: $fileToPlay) { file in
             videoPlayerView(for: file)
@@ -75,20 +74,14 @@ struct MovieLibraryFolderView: View {
     @ViewBuilder
     private func movieDetailContent(for file: LibraryFile) -> some View {
         let metadata = selectedMetadata ?? metadataService.cachedMetadata(for: file) ?? placeholderMetadata(for: file)
-        MovieDetailView(
+        MovieDetailPlayerWrapper(
             metadata: metadata,
             file: file,
-            onPlay: { startTime in
-                let fileToOpen = file
-                selectedFile = nil
-                resumeStartTime = startTime
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    fileToPlay = fileToOpen
-                }
-            },
-            onDismiss: {
-                selectedFile = nil
-            }
+            share: share,
+            folder: folder,
+            shareManager: shareManager,
+            progressService: progressService,
+            onDismiss: { selectedFile = nil }
         )
         .environmentObject(metadataService)
         .environmentObject(progressService)
@@ -156,17 +149,14 @@ struct MovieLibraryFolderView: View {
         await libraryService.rescanFolder(folder, share: share, credentials: credentials)
         isScanning = false
 
-        // Fetch metadata for any new files
         await fetchMetadataIfNeeded()
     }
 
     // MARK: - Metadata Fetching
 
     private func fetchMetadataIfNeeded() async {
-        // Only fetch if API key is configured
         guard metadataService.isAPIKeyConfigured else { return }
 
-        // Filter files that don't have metadata yet
         let filesNeedingMetadata = files.filter { file in
             metadataService.cachedMetadata(for: file) == nil
         }
@@ -177,27 +167,4 @@ struct MovieLibraryFolderView: View {
         await metadataService.fetchMetadata(for: filesNeedingMetadata)
         isFetchingMetadata = false
     }
-}
-
-#Preview {
-    NavigationStack {
-        MovieLibraryFolderView(
-            folder: LibraryFolder(
-                shareId: UUID(),
-                path: "Movies",
-                contentType: .movies,
-                displayName: "Movies"
-            ),
-            share: SavedShare(
-                hostName: "NAS",
-                hostAddress: "192.168.1.1",
-                shareName: "data",
-                displayName: "NAS"
-            ),
-            shareManager: ShareManager()
-        )
-    }
-    .environmentObject(LibraryService())
-    .environmentObject(MetadataService())
-    .environmentObject(PlaybackProgressService())
 }

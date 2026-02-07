@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A horizontal scrolling row showing in-progress media items for quick resume
+/// A horizontal scrolling row showing in-progress media items for quick resume (tvOS)
 struct ContinueWatchingRow: View {
     let onPlay: (LibraryFile, LibraryFolder, SavedShare, TimeInterval) -> Void
 
@@ -19,10 +19,10 @@ struct ContinueWatchingRow: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Continue Watching")
                     .font(.headline)
-                    .padding(.leading, leadingInset)
+                    .padding(.leading, 4)
 
                 ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(spacing: cardSpacing) {
+                    LazyHStack(spacing: 40) {
                         ForEach(items, id: \.fileId) { progress in
                             if let file = libraryService.file(for: progress.fileId) {
                                 ContinueWatchingCard(
@@ -41,19 +41,11 @@ struct ContinueWatchingRow: View {
                             }
                         }
                     }
-                    .padding(.leading, leadingInset)
+                    .padding(.leading, 4)
+                    .padding(.vertical, 20)
                 }
             }
         }
-    }
-
-    /// Leading inset to align content within the list row
-    private var leadingInset: CGFloat {
-        return 20
-    }
-
-    private var cardSpacing: CGFloat {
-        return 12
     }
 
     private func handleTap(progress: PlaybackProgress, file: LibraryFile) {
@@ -79,20 +71,20 @@ private struct ContinueWatchingCard: View {
     private let posterAspectRatio: CGFloat = 2 / 3
 
     var body: some View {
-        Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 8) {
+            Button(action: onTap) {
                 posterImage
                     .aspectRatio(posterAspectRatio, contentMode: .fit)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .overlay(alignment: .bottom) {
                         progressBar
                     }
-
-                textLabels
             }
-            .frame(width: cardWidth)
+            .buttonStyle(PosterButtonStyle())
+
+            textLabels
         }
-        .buttonStyle(.plain)
+        .containerRelativeFrame(.horizontal, count: 7, spacing: 40)
         .contextMenu {
             contextMenuItems
         }
@@ -114,10 +106,6 @@ private struct ContinueWatchingCard: View {
     }
 
     // MARK: - Computed Properties
-
-    private var cardWidth: CGFloat {
-        return 130
-    }
 
     private var textLabels: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -223,4 +211,3 @@ private struct ContinueWatchingCard: View {
         .padding(.bottom, 4)
     }
 }
-

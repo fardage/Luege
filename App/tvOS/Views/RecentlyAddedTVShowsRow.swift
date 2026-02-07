@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A horizontal scrolling row showing recently added TV shows from the library
+/// A horizontal scrolling row showing recently added TV shows from the library (tvOS)
 struct RecentlyAddedTVShowsRow: View {
     let onSelect: (TVShowMetadata, [TVEpisodeMetadata], [UUID: LibraryFile]) -> Void
 
@@ -17,10 +17,10 @@ struct RecentlyAddedTVShowsRow: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Recently Added TV Shows")
                     .font(.headline)
-                    .padding(.leading, leadingInset)
+                    .padding(.leading, 4)
 
                 ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(spacing: cardSpacing) {
+                    LazyHStack(spacing: 40) {
                         ForEach(shows, id: \.show.id) { item in
                             TVShowPosterCard(
                                 show: item.show,
@@ -28,13 +28,13 @@ struct RecentlyAddedTVShowsRow: View {
                             ) {
                                 onSelect(item.show, item.episodes, item.files)
                             }
-                            .frame(width: cardWidth)
+                            .containerRelativeFrame(.horizontal, count: 7, spacing: 40)
                         }
                     }
-                    .padding(.leading, leadingInset)
+                    .padding(.leading, 4)
+                    .padding(.vertical, 20)
                 }
             }
-            .padding(.bottom, 12)
         }
     }
 
@@ -51,13 +51,11 @@ struct RecentlyAddedTVShowsRow: View {
     private var recentTVShows: [RecentTVShow] {
         let tvFolders = libraryService.folders(for: .tvShows)
 
-        // Collect all files across TV show folders
         var allFiles: [LibraryFile] = []
         for folder in tvFolders {
             allFiles.append(contentsOf: libraryService.files(for: folder.id))
         }
 
-        // Group by series TMDb ID
         var showGroups: [Int: (episodes: [TVEpisodeMetadata], files: [UUID: LibraryFile], mostRecent: Date)] = [:]
         for file in allFiles {
             guard let episode = metadataService.cachedTVEpisodeMetadata(for: file),
@@ -76,7 +74,6 @@ struct RecentlyAddedTVShowsRow: View {
             showGroups[tmdbId] = group
         }
 
-        // Build result with show metadata
         var results: [RecentTVShow] = []
         for (tmdbId, group) in showGroups {
             guard let show = metadataService.cachedTVShowMetadata(forTmdbId: tmdbId) else {
@@ -97,19 +94,5 @@ struct RecentlyAddedTVShowsRow: View {
             .sorted { $0.mostRecentDate > $1.mostRecentDate }
             .prefix(20)
             .map { $0 }
-    }
-
-    // MARK: - Layout Constants
-
-    private var leadingInset: CGFloat {
-        return 20
-    }
-
-    private var cardSpacing: CGFloat {
-        return 12
-    }
-
-    private var cardWidth: CGFloat {
-        return 130
     }
 }

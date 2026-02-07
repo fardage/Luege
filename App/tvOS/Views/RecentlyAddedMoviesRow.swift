@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A horizontal scrolling row showing recently added movies from the library
+/// A horizontal scrolling row showing recently added movies from the library (tvOS)
 struct RecentlyAddedMoviesRow: View {
     let onSelect: (LibraryFile, MovieMetadata) -> Void
 
@@ -14,21 +14,21 @@ struct RecentlyAddedMoviesRow: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Recently Added Movies")
                     .font(.headline)
-                    .padding(.leading, leadingInset)
+                    .padding(.leading, 4)
 
                 ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(spacing: cardSpacing) {
+                    LazyHStack(spacing: 40) {
                         ForEach(movies, id: \.file.id) { item in
                             MoviePosterCard(metadata: item.metadata) {
                                 onSelect(item.file, item.metadata)
                             }
-                            .frame(width: cardWidth)
+                            .containerRelativeFrame(.horizontal, count: 7, spacing: 40)
                         }
                     }
-                    .padding(.leading, leadingInset)
+                    .padding(.leading, 4)
+                    .padding(.vertical, 20)
                 }
             }
-            .padding(.bottom, 12)
         }
     }
 
@@ -51,19 +51,5 @@ struct RecentlyAddedMoviesRow: View {
             .sorted { $0.file.lastSeenAt > $1.file.lastSeenAt }
             .prefix(20)
             .map { $0 }
-    }
-
-    // MARK: - Layout Constants
-
-    private var leadingInset: CGFloat {
-        return 20
-    }
-
-    private var cardSpacing: CGFloat {
-        return 12
-    }
-
-    private var cardWidth: CGFloat {
-        return 130
     }
 }

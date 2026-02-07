@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A movie poster card for display in grid views
+/// A movie poster card for display in grid views (tvOS)
 struct MoviePosterCard: View {
     let metadata: MovieMetadata
     let onTap: () -> Void
@@ -14,19 +14,19 @@ struct MoviePosterCard: View {
         // Reference progressVersion to track changes
         let _ = progressService.progressVersion
 
-        Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 8) {
+            Button(action: onTap) {
                 posterImage
                     .aspectRatio(posterAspectRatio, contentMode: .fit)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .overlay(alignment: .bottom) {
                         progressBar
                     }
-
-                textLabels
             }
+            .buttonStyle(PosterButtonStyle())
+
+            textLabels
         }
-        .buttonStyle(.plain)
     }
 
     // MARK: - Text Labels
@@ -49,7 +49,7 @@ struct MoviePosterCard: View {
 
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(.green)
-                    .font(.system(size: 16))
+                    .font(.system(size: 22))
             }
         }
     }
@@ -109,22 +109,4 @@ struct MoviePosterCard: View {
             }
         }
     }
-}
-
-#Preview {
-    let metadata = MovieMetadata(
-        id: UUID(),
-        tmdbId: 603,
-        title: "The Matrix",
-        year: 1999,
-        genres: ["Action", "Sci-Fi"],
-        posterPath: "/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg"
-    )
-
-    return MoviePosterCard(metadata: metadata) {
-        print("Tapped")
-    }
-    .frame(width: 150)
-    .environmentObject(MetadataService())
-    .environmentObject(PlaybackProgressService())
 }

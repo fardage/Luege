@@ -22,6 +22,31 @@ targets:
     sources:
       - path: Shared
         createIntermediateGroups: true
+        excludes:
+          - "Extensions/PosterButtonStyle.swift"
+          - "Views/LibraryView.swift"
+          - "Views/MoviePosterCard.swift"
+          - "Views/TVShowPosterCard.swift"
+          - "Views/ContinueWatchingRow.swift"
+          - "Views/RecentlyAddedMoviesRow.swift"
+          - "Views/RecentlyAddedTVShowsRow.swift"
+          - "Views/MovieDetailView.swift"
+          - "Views/MovieGridView.swift"
+          - "Views/TVShowGridView.swift"
+          - "Views/FileEntryRow.swift"
+          - "Views/LibraryFolderRow.swift"
+          - "Views/EpisodeRow.swift"
+          - "Views/SourcesView.swift"
+          - "Views/SettingsView.swift"
+          - "Views/FolderBrowserView.swift"
+          - "Views/MovieLibraryFolderView.swift"
+          - "Views/TVShowLibraryFolderView.swift"
+          - "Views/AddToLibrarySheet.swift"
+          - "Views/VideoPlayerView.swift"
+          - "Views/VideoControlsOverlay.swift"
+          - "Views/AudioTrackSelectionView.swift"
+          - "Views/SubtitleTrackSelectionView.swift"
+          - "Views/AlphabetSectionIndex.swift"
       - path: tvOS
         createIntermediateGroups: true
     dependencies:

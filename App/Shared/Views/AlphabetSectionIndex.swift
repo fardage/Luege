@@ -1,6 +1,5 @@
 import SwiftUI
 
-#if !os(tvOS)
 /// A vertical A-Z + "#" strip overlay for quick section navigation.
 ///
 /// Supports both tap and continuous drag gestures. Letters without items
@@ -45,4 +44,3 @@ struct AlphabetSectionIndex: View {
         }
     }
 }
-#endif

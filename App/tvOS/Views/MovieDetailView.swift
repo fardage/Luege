@@ -5,7 +5,7 @@ private struct MovieDetailHeaderView: View {
     let metadata: MovieMetadata
 
     private let backdropSize: TMDbService.BackdropSize = .w1280
-    private var backdropHeight: CGFloat { UIScreen.main.bounds.height * 0.55 }
+    private var backdropHeight: CGFloat { UIScreen.main.bounds.height * 0.58 }
 
     var body: some View {
         GeometryReader { geometry in
@@ -73,7 +73,7 @@ private struct MovieDetailHeaderView: View {
     }
 }
 
-/// Apple TV app–style movie detail view with centered layout and dark cinematic theme
+/// Apple TV app–style movie detail view (tvOS)
 struct MovieDetailView: View {
     let metadata: MovieMetadata
     let file: LibraryFile
@@ -97,27 +97,23 @@ struct MovieDetailView: View {
                         synopsisSection
                         metadataInfoRow
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, 80)
                     .padding(.top, 16)
-                    .padding(.bottom, 40)
+                    .padding(.bottom, 60)
                 }
             }
             .ignoresSafeArea(edges: .top)
             .background(Color.black)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { onDismiss() }
-                }
-            }
+            .onPlayPauseCommand { onPlay(fileProgress?.currentTime) }
         }
+        .onExitCommand { onDismiss() }
     }
 
     // MARK: - Title
 
     private var titleSection: some View {
         Text(metadata.title)
-            .font(.title.bold())
+            .font(.largeTitle.bold())
             .foregroundStyle(.white)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
@@ -180,27 +176,22 @@ struct MovieDetailView: View {
                 .buttonStyle(.adaptiveGlassProminent)
             }
 
-            Menu {
-                if progressService.isWatched(file.id) {
-                    Button {
-                        progressService.markAsUnwatched(fileId: file.id)
-                    } label: {
-                        Label("Mark as Unwatched", systemImage: "eye.slash")
-                    }
-                } else {
-                    Button {
-                        progressService.markAsWatched(fileId: file.id)
-                    } label: {
-                        Label("Mark as Watched", systemImage: "eye")
-                    }
+            if progressService.isWatched(file.id) {
+                Button {
+                    progressService.markAsUnwatched(fileId: file.id)
+                } label: {
+                    Label("Mark as Unwatched", systemImage: "eye.slash")
+                        .font(.subheadline)
                 }
-            } label: {
-                Image(systemName: "ellipsis")
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 44, height: 44)
-                    .background(Color.white.opacity(0.15))
-                    .clipShape(Circle())
+                .buttonStyle(.adaptiveGlass)
+            } else {
+                Button {
+                    progressService.markAsWatched(fileId: file.id)
+                } label: {
+                    Label("Mark as Watched", systemImage: "eye")
+                        .font(.subheadline)
+                }
+                .buttonStyle(.adaptiveGlass)
             }
         }
         .padding(.top, 4)
@@ -263,38 +254,4 @@ struct MovieDetailView: View {
 
         return components
     }
-}
-
-#Preview {
-    let metadata = MovieMetadata(
-        id: UUID(),
-        tmdbId: 603,
-        title: "The Matrix",
-        originalTitle: "The Matrix",
-        year: 1999,
-        runtime: 136,
-        genres: ["Action", "Science Fiction", "Thriller"],
-        synopsis: "A computer hacker learns from mysterious rebels about the true nature of his reality and his role in the war against its controllers.",
-        posterPath: "/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg",
-        backdropPath: "/fNG7i7RqMErkcqhohV2a6cV1Ehy.jpg",
-        voteAverage: 8.2
-    )
-
-    let file = LibraryFile(
-        id: metadata.id,
-        folderId: UUID(),
-        relativePath: "The Matrix (1999).mkv",
-        fileName: "The Matrix (1999).mkv",
-        size: 5_000_000_000,
-        modifiedDate: nil
-    )
-
-    return MovieDetailView(
-        metadata: metadata,
-        file: file,
-        onPlay: { startTime in print("Play from \(String(describing: startTime))") },
-        onDismiss: { print("Dismiss") }
-    )
-    .environmentObject(MetadataService())
-    .environmentObject(PlaybackProgressService())
 }

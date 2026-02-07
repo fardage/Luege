@@ -28,13 +28,13 @@ struct SourcesView: View {
                     sharesList
                 }
             }
-            .navigationTitle("Sources")
+            .navigationTitle("")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         isShowingAddSheet = true
                     } label: {
-                        Label("Add", systemImage: "plus")
+                        Image(systemName: "plus")
                     }
                 }
             }
@@ -67,9 +67,6 @@ struct SourcesView: View {
             }
             .task {
                 await loadShares()
-            }
-            .refreshable {
-                await shareManager.refreshAllStatuses()
             }
         }
     }

@@ -10,33 +10,34 @@ struct LibraryFolderRow: View {
 
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 12) {
+            HStack(spacing: 24) {
                 Image(systemName: folder.contentType.iconName)
-                    .font(.title2)
+                    .font(.title)
                     .foregroundStyle(status.isOnline ? .primary : .secondary)
-                    .frame(width: 32)
+                    .frame(width: 48)
+                    .padding(.trailing, 12)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(folder.displayName)
-                        .font(.headline)
+                        .font(.title3)
                         .foregroundStyle(status.isOnline ? .primary : .secondary)
 
                     HStack(spacing: 8) {
                         if let shareName = shareName {
                             Text(shareName)
-                                .font(.caption)
+                                .font(.callout)
                                 .foregroundStyle(.secondary)
                         }
 
                         if let videoCount = folder.videoCount {
                             Text("\(videoCount) video\(videoCount == 1 ? "" : "s")")
-                                .font(.caption)
+                                .font(.callout)
                                 .foregroundStyle(.secondary)
                         }
 
                         if folder.scanError != nil {
                             Image(systemName: "xmark.circle.fill")
-                                .font(.caption)
+                                .font(.callout)
                                 .foregroundStyle(.red)
                         }
                     }
@@ -48,20 +49,11 @@ struct LibraryFolderRow: View {
                     ConnectionStatusBadge(status: status)
                 }
             }
+            .padding(.horizontal, 40)
+            .padding(.vertical, 20)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-            Button(role: .destructive, action: onRemove) {
-                Label("Remove", systemImage: "minus.circle")
-            }
-        }
-        .swipeActions(edge: .leading) {
-            Button(action: onRescan) {
-                Label("Rescan", systemImage: "arrow.clockwise")
-            }
-            .tint(.blue)
-        }
+        .buttonStyle(.card)
         .contextMenu {
             Button(action: onRescan) {
                 Label("Rescan Folder", systemImage: "arrow.clockwise")
@@ -85,54 +77,5 @@ struct LibraryFolderRow: View {
             label += ", \(status.displayText)"
         }
         return label
-    }
-}
-
-#Preview {
-    List {
-        LibraryFolderRow(
-            folder: LibraryFolder(
-                shareId: UUID(),
-                path: "Movies",
-                contentType: .movies,
-                displayName: "Movies",
-                videoCount: 42
-            ),
-            shareName: "NAS",
-            status: .online,
-            onTap: {},
-            onRemove: {},
-            onRescan: {}
-        )
-
-        LibraryFolderRow(
-            folder: LibraryFolder(
-                shareId: UUID(),
-                path: "TV Shows",
-                contentType: .tvShows,
-                displayName: "TV Shows",
-                videoCount: 156
-            ),
-            shareName: "Media Server",
-            status: .offline(reason: "Connection refused"),
-            onTap: {},
-            onRemove: {},
-            onRescan: {}
-        )
-
-        LibraryFolderRow(
-            folder: LibraryFolder(
-                shareId: UUID(),
-                path: "Home Videos",
-                contentType: .homeVideos,
-                displayName: "Family Videos",
-                scanError: "Failed to scan"
-            ),
-            shareName: "Backup Drive",
-            status: .online,
-            onTap: {},
-            onRemove: {},
-            onRescan: {}
-        )
     }
 }

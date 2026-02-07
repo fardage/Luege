@@ -1,19 +1,16 @@
 import SwiftUI
 
-/// A view for selecting audio tracks during video playback
+/// A view for selecting audio tracks during video playback (tvOS)
 struct AudioTrackSelectionView: View {
     @ObservedObject var viewModel: VideoPlayerViewModel
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
             header
-
-            // Track list
             trackList
         }
         .background(backgroundStyle)
+        .focusSection()
     }
 
     // MARK: - Header
@@ -25,14 +22,6 @@ struct AudioTrackSelectionView: View {
                 .foregroundStyle(.white)
 
             Spacer()
-
-            Button {
-                viewModel.hideAudioTrackMenu()
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.title2)
-                    .foregroundStyle(.white.opacity(0.8))
-            }
         }
         .padding()
     }
@@ -56,17 +45,12 @@ struct AudioTrackSelectionView: View {
 
         return Button {
             viewModel.selectAudioTrack(at: track.index)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                viewModel.hideAudioTrackMenu()
-            }
         } label: {
             HStack(spacing: 12) {
-                // Checkmark
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
                     .foregroundStyle(isSelected ? .white : .white.opacity(0.5))
 
-                // Track info
                 VStack(alignment: .leading, spacing: 2) {
                     Text(track.displayName)
                         .font(.body)
@@ -88,6 +72,7 @@ struct AudioTrackSelectionView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .focusable()
     }
 
     @ViewBuilder

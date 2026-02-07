@@ -7,32 +7,33 @@ struct FileEntryRow: View {
 
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 12) {
+            HStack(spacing: 24) {
                 ZStack(alignment: .bottomTrailing) {
                     Image(systemName: iconName)
-                        .font(.title2)
+                        .font(.title)
                         .foregroundStyle(iconColor)
-                        .frame(width: 32)
+                        .frame(width: 48)
 
                     if isLibraryFolder {
                         Image(systemName: "books.vertical.fill")
-                            .font(.system(size: 10))
+                            .font(.system(size: 14))
                             .foregroundStyle(.white)
-                            .padding(2)
+                            .padding(4)
                             .background(Color.green)
                             .clipShape(Circle())
-                            .offset(x: 4, y: 4)
+                            .offset(x: 6, y: 6)
                     }
                 }
+                .padding(.trailing, 12)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(entry.name)
-                        .font(.body)
+                        .font(.title3)
                         .lineLimit(1)
 
                     if let subtitle = subtitle {
                         Text(subtitle)
-                            .font(.caption)
+                            .font(.callout)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -41,13 +42,15 @@ struct FileEntryRow: View {
 
                 if entry.isFolder {
                     Image(systemName: "chevron.right")
-                        .font(.caption)
+                        .font(.body)
                         .foregroundStyle(.secondary)
                 }
             }
+            .padding(.horizontal, 40)
+            .padding(.vertical, 20)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.card)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint(entry.isFolder ? "Double-tap to open folder" : "")

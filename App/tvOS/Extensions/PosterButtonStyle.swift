@@ -1,6 +1,5 @@
 import SwiftUI
 
-#if os(tvOS)
 /// A custom button style for poster image buttons on tvOS.
 /// Provides a scale-up + shadow effect on focus without the system's default focus platter.
 struct PosterButtonStyle: ButtonStyle {
@@ -13,4 +12,3 @@ struct PosterButtonStyle: ButtonStyle {
             .animation(.easeInOut(duration: 0.2), value: isFocused)
     }
 }
-#endif

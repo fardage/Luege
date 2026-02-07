@@ -30,11 +30,11 @@ struct LibraryView: View {
                     libraryList
                 }
             }
-            .navigationTitle("Library")
+            .navigationTitle("")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button(action: refreshLibrary) {
-                        Label("Refresh", systemImage: "arrow.clockwise")
+                        Image(systemName: "arrow.clockwise")
                     }
                     .disabled(libraryService.isScanning || libraryService.libraryFolders.isEmpty)
                 }
@@ -48,7 +48,6 @@ struct LibraryView: View {
             .animation(.easeInOut(duration: 0.2), value: libraryService.isScanning)
             .navigationDestination(item: $selectedFolder) { folder in
                 if let share = shareManager.savedShare(for: folder.shareId) {
-                    // Use specialized views for each content type
                     if folder.contentType == .movies {
                         MovieLibraryFolderView(
                             folder: folder,
@@ -62,7 +61,6 @@ struct LibraryView: View {
                             shareManager: shareManager
                         )
                     } else {
-                        // Fall back to folder browser for other content types
                         FolderBrowserView(
                             share: share,
                             shareManager: shareManager,
@@ -77,9 +75,8 @@ struct LibraryView: View {
                     )
                 }
             }
-            .sheet(item: $selectedMovieFile) { file in
+            .fullScreenCover(item: $selectedMovieFile) { file in
                 movieDetailFromRow(for: file)
-                    .presentationBackground(.black)
             }
             .navigationDestination(item: $selectedTVShow) { show in
                 TVShowDetailView(
@@ -125,21 +122,21 @@ struct LibraryView: View {
     @ViewBuilder
     private var libraryList: some View {
         List {
+            Text("Library")
+                .font(.title3.bold())
+                .listRowBackground(Color.clear)
+
             ContinueWatchingRow { file, folder, share, startTime in
                 resumeStartTime = startTime
                 fileToPlayShare = share
                 fileToPlay = file
             }
-            .listRowInsets(EdgeInsets())
-            .listRowSeparator(.hidden)
             .listRowBackground(Color.clear)
 
             RecentlyAddedMoviesRow { file, metadata in
                 selectedMovieMetadata = metadata
                 selectedMovieFile = file
             }
-            .listRowInsets(EdgeInsets())
-            .listRowSeparator(.hidden)
             .listRowBackground(Color.clear)
 
             RecentlyAddedTVShowsRow { show, episodes, files in
@@ -147,8 +144,6 @@ struct LibraryView: View {
                 selectedTVShowFiles = files
                 selectedTVShow = show
             }
-            .listRowInsets(EdgeInsets())
-            .listRowSeparator(.hidden)
             .listRowBackground(Color.clear)
 
             // All content types use the same row style
@@ -176,10 +171,6 @@ struct LibraryView: View {
             }
         }
         .listStyle(.plain)
-        .scrollIndicators(.hidden)
-        .refreshable {
-            await shareManager.refreshAllStatuses()
-        }
     }
 
     // MARK: - Computed Properties
@@ -238,23 +229,17 @@ struct LibraryView: View {
     @ViewBuilder
     private func movieDetailFromRow(for file: LibraryFile) -> some View {
         let metadata = selectedMovieMetadata ?? metadataService.cachedMetadata(for: file) ?? placeholderMetadata(for: file)
-        MovieDetailView(
+        let folder = libraryService.folder(for: file.id)
+        let share = folder.flatMap { shareManager.savedShare(for: $0.shareId) }
+
+        MovieDetailPlayerWrapper(
             metadata: metadata,
             file: file,
-            onPlay: { startTime in
-                let fileToOpen = file
-                selectedMovieFile = nil
-                resumeStartTime = startTime
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    guard let folder = libraryService.folder(for: fileToOpen.id),
-                          let share = shareManager.savedShare(for: folder.shareId) else { return }
-                    fileToPlayShare = share
-                    fileToPlay = fileToOpen
-                }
-            },
-            onDismiss: {
-                selectedMovieFile = nil
-            }
+            share: share,
+            folder: folder,
+            shareManager: shareManager,
+            progressService: progressService,
+            onDismiss: { selectedMovieFile = nil }
         )
         .environmentObject(metadataService)
         .environmentObject(progressService)
@@ -306,7 +291,6 @@ struct LibraryView: View {
     }
 
     private func refreshLibrary() {
-        // Capture current state for background scan
         let savedSharesSnapshot = shareManager.savedShares
         let statusesSnapshot = shareManager.shareStatuses
 
@@ -334,7 +318,6 @@ private struct ScanProgressBanner: View {
     var body: some View {
         HStack(spacing: 12) {
             ProgressView()
-                .progressViewStyle(.circular)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Scanning Library")
@@ -375,10 +358,59 @@ private struct ScanProgressBanner: View {
     }
 }
 
-#Preview {
-    LibraryView(selectedTab: .constant(0))
-        .environmentObject(LibraryService())
-        .environmentObject(ShareManager())
-        .environmentObject(MetadataService())
-        .environmentObject(PlaybackProgressService())
+// MARK: - Movie Detail + Player Wrapper (tvOS)
+
+/// Wraps MovieDetailView and presents VideoPlayerView from within the same fullScreenCover,
+/// avoiding the tvOS limitation where dismissing one fullScreenCover and presenting another fails.
+struct MovieDetailPlayerWrapper: View {
+    let metadata: MovieMetadata
+    let file: LibraryFile
+    let share: SavedShare?
+    let folder: LibraryFolder?
+    let shareManager: ShareManager
+    let progressService: PlaybackProgressService
+    let onDismiss: () -> Void
+
+    @State private var fileToPlay: LibraryFile?
+    @State private var resumeStartTime: TimeInterval?
+
+    var body: some View {
+        MovieDetailView(
+            metadata: metadata,
+            file: file,
+            onPlay: { startTime in
+                resumeStartTime = startTime
+                fileToPlay = file
+            },
+            onDismiss: onDismiss
+        )
+        .fullScreenCover(item: $fileToPlay) { playFile in
+            if let share = share {
+                let fullPath: String = {
+                    guard let folder = folder else { return playFile.relativePath }
+                    if folder.path.isEmpty { return playFile.relativePath }
+                    return "\(folder.path)/\(playFile.relativePath)"
+                }()
+
+                let fileEntry = FileEntry(
+                    id: playFile.id,
+                    name: playFile.fileName,
+                    path: fullPath,
+                    type: .file,
+                    size: playFile.size,
+                    modifiedDate: playFile.modifiedDate
+                )
+
+                VideoPlayerView(
+                    video: fileEntry,
+                    share: share,
+                    credentialProvider: { [weak shareManager] in
+                        try await shareManager?.credentials(for: share)
+                    },
+                    progressService: progressService,
+                    startTime: resumeStartTime
+                )
+            }
+        }
+    }
 }

@@ -1,10 +1,10 @@
 import SwiftUI
 
-#if canImport(MobileVLCKit)
-import MobileVLCKit
+#if canImport(TVVLCKit)
+import TVVLCKit
 #endif
 
-/// Full-screen video player view
+/// Full-screen video player view (tvOS)
 struct VideoPlayerView: View {
     @StateObject private var viewModel: VideoPlayerViewModel
     @Environment(\.dismiss) private var dismiss
@@ -16,7 +16,6 @@ struct VideoPlayerView: View {
         progressService: PlaybackProgressService? = nil,
         startTime: TimeInterval? = nil
     ) {
-        // Create a directory browser for external subtitle scanning
         let browser = SMBDirectoryBrowser()
 
         _viewModel = StateObject(wrappedValue: VideoPlayerViewModel(
@@ -31,21 +30,17 @@ struct VideoPlayerView: View {
 
     var body: some View {
         ZStack {
-            // Black background
             Color.black.ignoresSafeArea()
 
-            // Video layer (VLC)
-            #if canImport(MobileVLCKit)
+            #if canImport(TVVLCKit)
             if let player = viewModel.vlcMediaPlayer {
                 VLCVideoView(mediaPlayer: player)
                     .ignoresSafeArea()
             }
             #endif
 
-            // Content overlay based on state
             contentOverlay
         }
-        .statusBarHidden()
         .persistentSystemOverlays(.hidden)
         .task {
             await viewModel.prepare()
@@ -56,15 +51,15 @@ struct VideoPlayerView: View {
         .onDisappear {
             viewModel.stop()
         }
-        .onTapGesture {
-            viewModel.toggleControls()
+        .onPlayPauseCommand {
+            viewModel.togglePlayPause()
         }
-        .gesture(
-            DragGesture(minimumDistance: 50)
-                .onEnded { value in
-                    handleSwipeGesture(value)
-                }
-        )
+        .onMoveCommand { direction in
+            handleMoveCommand(direction)
+        }
+        .onExitCommand {
+            handleExitCommand()
+        }
     }
 
     // MARK: - Content Overlay
@@ -110,7 +105,6 @@ struct VideoPlayerView: View {
 
     @ViewBuilder
     private var playbackOverlay: some View {
-        // Buffering indicator - show when truly stalled (initial load or playback stall)
         if viewModel.isStalled && !viewModel.isControlsVisible {
             ProgressView()
                 .scaleEffect(1.5)
@@ -118,19 +112,16 @@ struct VideoPlayerView: View {
                 .allowsHitTesting(false)
         }
 
-        // Controls overlay
         if viewModel.isControlsVisible && !viewModel.isAudioTrackMenuVisible && !viewModel.isSubtitleMenuVisible {
             VideoControlsOverlay(viewModel: viewModel)
                 .transition(.opacity)
                 .animation(.easeInOut(duration: 0.3), value: viewModel.isControlsVisible)
         }
 
-        // Audio track selection menu
         if viewModel.isAudioTrackMenuVisible {
             audioTrackMenuOverlay
         }
 
-        // Subtitle selection menu
         if viewModel.isSubtitleMenuVisible {
             subtitleMenuOverlay
         }
@@ -138,14 +129,9 @@ struct VideoPlayerView: View {
 
     private var audioTrackMenuOverlay: some View {
         ZStack {
-            // Dim background
             Color.black.opacity(0.6)
                 .ignoresSafeArea()
-                .onTapGesture {
-                    viewModel.hideAudioTrackMenu()
-                }
 
-            // Menu positioned at top-right
             VStack {
                 HStack {
                     Spacer()
@@ -163,14 +149,9 @@ struct VideoPlayerView: View {
 
     private var subtitleMenuOverlay: some View {
         ZStack {
-            // Dim background
             Color.black.opacity(0.6)
                 .ignoresSafeArea()
-                .onTapGesture {
-                    viewModel.hideSubtitleMenu()
-                }
 
-            // Menu positioned at top-right
             VStack {
                 HStack {
                     Spacer()
@@ -188,20 +169,30 @@ struct VideoPlayerView: View {
 
     // MARK: - Gesture Handling
 
-    private func handleSwipeGesture(_ value: DragGesture.Value) {
-        // Don't handle swipes if a menu is visible
+    private func handleMoveCommand(_ direction: MoveCommandDirection) {
         guard !viewModel.isAudioTrackMenuVisible && !viewModel.isSubtitleMenuVisible else { return }
 
-        let horizontalDistance = value.translation.width
-        let verticalDistance = value.translation.height
-
-        // Handle horizontal swipes for seek
-        guard abs(horizontalDistance) > abs(verticalDistance) else { return }
-
-        if horizontalDistance > 50 {
-            viewModel.skipForward()
-        } else if horizontalDistance < -50 {
+        switch direction {
+        case .left:
             viewModel.skipBackward()
+        case .right:
+            viewModel.skipForward()
+        case .up:
+            viewModel.showControls()
+        case .down:
+            viewModel.showControls()
+        @unknown default:
+            break
+        }
+    }
+
+    private func handleExitCommand() {
+        if viewModel.isAudioTrackMenuVisible {
+            viewModel.hideAudioTrackMenu()
+        } else if viewModel.isSubtitleMenuVisible {
+            viewModel.hideSubtitleMenu()
+        } else {
+            dismiss()
         }
     }
 }

@@ -8,7 +8,7 @@ private struct MovieItem: Identifiable {
     var id: UUID { file.id }
 }
 
-/// Grid view for displaying movie posters
+/// Grid view for displaying movie posters (tvOS)
 struct MovieGridView: View {
     let files: [LibraryFile]
     let onSelect: (LibraryFile, MovieMetadata?) -> Void
@@ -16,7 +16,7 @@ struct MovieGridView: View {
     @EnvironmentObject private var metadataService: MetadataService
 
     private let columns = [
-        GridItem(.adaptive(minimum: 120, maximum: 180), spacing: 16)
+        GridItem(.adaptive(minimum: 200, maximum: 300), spacing: 40)
     ]
 
     private var movieItems: [MovieItem] {
@@ -38,36 +38,24 @@ struct MovieGridView: View {
     }
 
     var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(sections) { section in
-                        Text(section.letter)
-                            .font(.title2.bold())
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.top, 16)
-                            .padding(.bottom, 4)
-                            .padding(.horizontal)
-                            .id("section_\(section.letter)")
-
-                        LazyVGrid(columns: columns, spacing: 24) {
-                            ForEach(section.items) { item in
-                                movieCard(for: item)
-                            }
-                        }
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(sections) { section in
+                    Text(section.letter)
+                        .font(.title2.bold())
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 40)
+                        .padding(.bottom, 20)
                         .padding(.horizontal)
+                        .id("section_\(section.letter)")
+
+                    LazyVGrid(columns: columns, spacing: 24) {
+                        ForEach(section.items) { item in
+                            movieCard(for: item)
+                        }
                     }
+                    .padding(.horizontal)
                 }
-            }
-            .overlay(alignment: .trailing) {
-                AlphabetSectionIndex(
-                    activeSections: Set(sections.map(\.letter))
-                ) { letter in
-                    withAnimation {
-                        proxy.scrollTo("section_\(letter)", anchor: .top)
-                    }
-                }
-                .padding(.trailing, 2)
             }
         }
     }
@@ -96,30 +84,4 @@ struct MovieGridView: View {
             onSelect(file, metadata)
         }
     }
-}
-
-#Preview {
-    let files = [
-        LibraryFile(
-            id: UUID(),
-            folderId: UUID(),
-            relativePath: "The Matrix (1999).mkv",
-            fileName: "The Matrix (1999).mkv",
-            size: 5_000_000_000,
-            modifiedDate: nil
-        ),
-        LibraryFile(
-            id: UUID(),
-            folderId: UUID(),
-            relativePath: "Inception (2010).mkv",
-            fileName: "Inception (2010).mkv",
-            size: 4_000_000_000,
-            modifiedDate: nil
-        )
-    ]
-
-    return MovieGridView(files: files) { file, metadata in
-        print("Selected: \(file.fileName)")
-    }
-    .environmentObject(MetadataService())
 }

@@ -8,15 +8,9 @@ struct TVShowGridView: View {
 
     @EnvironmentObject private var metadataService: MetadataService
 
-    #if os(tvOS)
-    private let columns = [
-        GridItem(.adaptive(minimum: 200, maximum: 300), spacing: 40)
-    ]
-    #else
     private let columns = [
         GridItem(.adaptive(minimum: 120, maximum: 180), spacing: 16)
     ]
-    #endif
 
     private var sections: [AlphabetSection<TVShowMetadata>] {
         alphabeticalSections(from: shows, nameKeyPath: \.name)
@@ -30,13 +24,8 @@ struct TVShowGridView: View {
                         Text(section.letter)
                             .font(.title2.bold())
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            #if os(tvOS)
-                            .padding(.top, 40)
-                            .padding(.bottom, 20)
-                            #else
                             .padding(.top, 16)
                             .padding(.bottom, 4)
-                            #endif
                             .padding(.horizontal)
                             .id("section_\(section.letter)")
 
@@ -54,7 +43,6 @@ struct TVShowGridView: View {
                     }
                 }
             }
-            #if !os(tvOS)
             .overlay(alignment: .trailing) {
                 AlphabetSectionIndex(
                     activeSections: Set(sections.map(\.letter))
@@ -65,7 +53,6 @@ struct TVShowGridView: View {
                 }
                 .padding(.trailing, 2)
             }
-            #endif
         }
     }
 }

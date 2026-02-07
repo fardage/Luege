@@ -1,23 +1,15 @@
 import SwiftUI
 
-/// Overlay controls for video playback
+/// Overlay controls for video playback (tvOS)
 struct VideoControlsOverlay: View {
     @ObservedObject var viewModel: VideoPlayerViewModel
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack(spacing: 0) {
-            // Top bar with title and close button
             topBar
-
             Spacer()
-
-            // Center play/pause button (larger, more prominent)
             centerControls
-
             Spacer()
-
-            // Bottom bar with progress and time
             bottomBar
         }
         .background(controlsBackground)
@@ -27,14 +19,6 @@ struct VideoControlsOverlay: View {
 
     private var topBar: some View {
         HStack {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.title)
-                    .foregroundStyle(.white.opacity(0.8))
-            }
-
             Text(viewModel.videoTitle)
                 .font(.headline)
                 .foregroundStyle(.white)
@@ -42,12 +26,10 @@ struct VideoControlsOverlay: View {
 
             Spacer()
 
-            // Subtitle button (only show if tracks available)
             if viewModel.hasSubtitleTracks {
                 subtitleButton
             }
 
-            // Audio track button (only show if multiple tracks)
             if viewModel.hasMultipleAudioTracks {
                 audioTrackButton
             }
@@ -66,6 +48,7 @@ struct VideoControlsOverlay: View {
                 .background(.ultraThinMaterial, in: Circle())
         }
         .buttonStyle(.plain)
+        .focusable()
     }
 
     private var audioTrackButton: some View {
@@ -86,13 +69,13 @@ struct VideoControlsOverlay: View {
             .foregroundStyle(.white)
         }
         .buttonStyle(.plain)
+        .focusable()
     }
 
     // MARK: - Center Controls
 
     private var centerControls: some View {
         HStack(spacing: 60) {
-            // Skip backward
             Button {
                 viewModel.skipBackward()
             } label: {
@@ -101,8 +84,8 @@ struct VideoControlsOverlay: View {
                     .foregroundStyle(.white)
             }
             .buttonStyle(.plain)
+            .focusable()
 
-            // Play/Pause
             Button {
                 viewModel.togglePlayPause()
             } label: {
@@ -111,8 +94,8 @@ struct VideoControlsOverlay: View {
                     .foregroundStyle(.white)
             }
             .buttonStyle(.plain)
+            .focusable()
 
-            // Skip forward
             Button {
                 viewModel.skipForward()
             } label: {
@@ -121,6 +104,7 @@ struct VideoControlsOverlay: View {
                     .foregroundStyle(.white)
             }
             .buttonStyle(.plain)
+            .focusable()
         }
     }
 
@@ -137,10 +121,8 @@ struct VideoControlsOverlay: View {
 
     private var bottomBar: some View {
         VStack(spacing: 8) {
-            // Progress bar
             progressBar
 
-            // Time labels
             HStack {
                 Text(viewModel.formattedCurrentTime)
                     .font(.caption)
@@ -162,27 +144,15 @@ struct VideoControlsOverlay: View {
     private var progressBar: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
-                // Background track
                 Capsule()
                     .fill(.white.opacity(0.3))
                     .frame(height: 4)
 
-                // Progress fill
                 Capsule()
                     .fill(.white)
                     .frame(width: geometry.size.width * viewModel.progress, height: 4)
             }
             .frame(height: 4)
-            .gesture(
-                DragGesture(minimumDistance: 0)
-                    .onEnded { value in
-                        let progress = value.location.x / geometry.size.width
-                        let clampedProgress = max(0, min(1, progress))
-                        Task {
-                            await viewModel.seekToProgress(clampedProgress)
-                        }
-                    }
-            )
         }
         .frame(height: 4)
     }

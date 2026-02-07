@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A TV show poster card for display in grid views
+/// A TV show poster card for display in grid views (tvOS)
 struct TVShowPosterCard: View {
     let show: TVShowMetadata
     let episodeCount: Int
@@ -11,16 +11,16 @@ struct TVShowPosterCard: View {
     private let posterAspectRatio: CGFloat = 2 / 3
 
     var body: some View {
-        Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 8) {
+            Button(action: onTap) {
                 posterImage
                     .aspectRatio(posterAspectRatio, contentMode: .fit)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
-
-                textLabels
             }
+            .buttonStyle(PosterButtonStyle())
+
+            textLabels
         }
-        .buttonStyle(.plain)
     }
 
     // MARK: - Text Labels
@@ -84,23 +84,4 @@ struct TVShowPosterCard: View {
             }
         }
     }
-}
-
-#Preview {
-    let show = TVShowMetadata(
-        tmdbId: 1399,
-        name: "Game of Thrones",
-        overview: "Seven noble families fight for control of the mythical land of Westeros.",
-        posterPath: "/1XS1oqL89opfnbLl8WnZY1O1uJx.jpg",
-        numberOfSeasons: 8,
-        numberOfEpisodes: 73,
-        genres: ["Drama", "Fantasy"],
-        status: "Ended"
-    )
-
-    return TVShowPosterCard(show: show, episodeCount: 5) {
-        print("Tapped")
-    }
-    .frame(width: 150)
-    .environmentObject(MetadataService())
 }
