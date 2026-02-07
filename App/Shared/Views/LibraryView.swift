@@ -193,6 +193,7 @@ struct LibraryView: View {
         }
         .listStyle(.plain)
         #if os(iOS)
+        .scrollIndicators(.hidden)
         .refreshable {
             await shareManager.refreshAllStatuses()
         }
