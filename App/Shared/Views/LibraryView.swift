@@ -13,6 +13,11 @@ struct LibraryView: View {
     @State private var fileToPlay: LibraryFile?
     @State private var fileToPlayShare: SavedShare?
     @State private var resumeStartTime: TimeInterval?
+    @State private var selectedMovieFile: LibraryFile?
+    @State private var selectedMovieMetadata: MovieMetadata?
+    @State private var selectedTVShow: TVShowMetadata?
+    @State private var selectedTVShowEpisodes: [TVEpisodeMetadata] = []
+    @State private var selectedTVShowFiles: [UUID: LibraryFile] = [:]
 
     var body: some View {
         NavigationStack {
@@ -76,6 +81,26 @@ struct LibraryView: View {
                     )
                 }
             }
+            #if os(tvOS)
+            .fullScreenCover(item: $selectedMovieFile) { file in
+                movieDetailFromRow(for: file)
+            }
+            #else
+            .sheet(item: $selectedMovieFile) { file in
+                movieDetailFromRow(for: file)
+                    .presentationBackground(.black)
+            }
+            #endif
+            .navigationDestination(item: $selectedTVShow) { show in
+                TVShowDetailView(
+                    show: show,
+                    episodes: selectedTVShowEpisodes,
+                    files: selectedTVShowFiles,
+                    onPlayEpisode: { file, startTime in
+                        handleTVShowPlay(file: file, startTime: startTime)
+                    }
+                )
+            }
             .fullScreenCover(item: $fileToPlay) { file in
                 if let share = fileToPlayShare {
                     videoPlayerView(for: file, share: share)
@@ -114,6 +139,27 @@ struct LibraryView: View {
                 resumeStartTime = startTime
                 fileToPlayShare = share
                 fileToPlay = file
+            }
+            #if os(iOS)
+            .listRowInsets(EdgeInsets())
+            .listRowSeparator(.hidden)
+            #endif
+            .listRowBackground(Color.clear)
+
+            RecentlyAddedMoviesRow { file, metadata in
+                selectedMovieMetadata = metadata
+                selectedMovieFile = file
+            }
+            #if os(iOS)
+            .listRowInsets(EdgeInsets())
+            .listRowSeparator(.hidden)
+            #endif
+            .listRowBackground(Color.clear)
+
+            RecentlyAddedTVShowsRow { show, episodes, files in
+                selectedTVShowEpisodes = episodes
+                selectedTVShowFiles = files
+                selectedTVShow = show
             }
             #if os(iOS)
             .listRowInsets(EdgeInsets())
@@ -204,6 +250,45 @@ struct LibraryView: View {
 
         let credentials = try? await shareManager.credentials(for: share)
         await libraryService.rescanFolder(folder, share: share, credentials: credentials)
+    }
+
+    @ViewBuilder
+    private func movieDetailFromRow(for file: LibraryFile) -> some View {
+        let metadata = selectedMovieMetadata ?? metadataService.cachedMetadata(for: file) ?? placeholderMetadata(for: file)
+        MovieDetailView(
+            metadata: metadata,
+            file: file,
+            onPlay: { startTime in
+                let fileToOpen = file
+                selectedMovieFile = nil
+                resumeStartTime = startTime
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    guard let folder = libraryService.folder(for: fileToOpen.id),
+                          let share = shareManager.savedShare(for: folder.shareId) else { return }
+                    fileToPlayShare = share
+                    fileToPlay = fileToOpen
+                }
+            },
+            onDismiss: {
+                selectedMovieFile = nil
+            }
+        )
+        .environmentObject(metadataService)
+        .environmentObject(progressService)
+    }
+
+    private func placeholderMetadata(for file: LibraryFile) -> MovieMetadata {
+        let parser = FilenameParser()
+        let parseResult = parser.parse(file.fileName)
+        return MovieMetadata.unmatched(fileId: file.id, parseResult: parseResult)
+    }
+
+    private func handleTVShowPlay(file: LibraryFile, startTime: TimeInterval?) {
+        guard let folder = libraryService.folder(for: file.id),
+              let share = shareManager.savedShare(for: folder.shareId) else { return }
+        resumeStartTime = startTime
+        fileToPlayShare = share
+        fileToPlay = file
     }
 
     @ViewBuilder
