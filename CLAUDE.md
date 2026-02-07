@@ -62,6 +62,44 @@ xcodebuild build -workspace Luege.xcworkspace -scheme "Luege iOS" -destination "
 
 App location: `~/Library/Developer/Xcode/DerivedData/Luege-*/Build/Products/Debug-iphonesimulator/Luege.app`
 
+### Visual Verification on tvOS Simulator with idb
+
+The iOS Simulator MCP tools do **not** support tvOS. Use `idb` (Facebook's iOS Development Bridge) and `xcrun simctl` instead.
+
+**Simulator:** Apple TV 4K (3rd generation), UDID: `17DE6C53-47AB-4C2F-A9B2-3F54FAF04881`
+
+```bash
+# Boot, build, install, launch
+xcrun simctl boot 17DE6C53-47AB-4C2F-A9B2-3F54FAF04881
+xcodebuild build -workspace Luege.xcworkspace -scheme "Luege tvOS" \
+  -destination "platform=tvOS Simulator,name=Apple TV 4K (3rd generation)" -quiet
+xcrun simctl install 17DE6C53-47AB-4C2F-A9B2-3F54FAF04881 \
+  ~/Library/Developer/Xcode/DerivedData/Luege-*/Build/Products/Debug-appletvsimulator/Luege.app
+xcrun simctl launch 17DE6C53-47AB-4C2F-A9B2-3F54FAF04881 com.luege.app
+```
+
+**Screenshots:**
+```bash
+xcrun simctl io 17DE6C53-47AB-4C2F-A9B2-3F54FAF04881 screenshot /tmp/tvos_screen.png
+```
+
+**Navigation via idb remote key codes** (tvOS uses focus-based navigation, not touch):
+```bash
+# idb ui key <HID_KEYCODE> --udid <UDID>
+idb ui key 40 --udid 17DE6C53-47AB-4C2F-A9B2-3F54FAF04881   # Select (Enter/Return)
+idb ui key 41 --udid 17DE6C53-47AB-4C2F-A9B2-3F54FAF04881   # Menu/Back (Escape)
+idb ui key 79 --udid 17DE6C53-47AB-4C2F-A9B2-3F54FAF04881   # Right arrow
+idb ui key 80 --udid 17DE6C53-47AB-4C2F-A9B2-3F54FAF04881   # Left arrow
+idb ui key 81 --udid 17DE6C53-47AB-4C2F-A9B2-3F54FAF04881   # Down arrow
+idb ui key 82 --udid 17DE6C53-47AB-4C2F-A9B2-3F54FAF04881   # Up arrow
+```
+
+**Important notes:**
+- Key codes are USB HID codes, **not** macOS virtual key codes
+- `idb ui tap` sends touch events which exit the app on tvOS — use `idb ui key` instead
+- First Select press focuses the element, second press activates it
+- Accessibility tree via `idb ui describe-all` only returns the top-level Application node on tvOS
+
 ## Code Architecture
 
 ### Directory Structure
